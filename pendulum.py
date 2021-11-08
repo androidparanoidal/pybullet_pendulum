@@ -29,8 +29,6 @@ p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, control
 time_list = []
 position_list = []
 
-
-
 #while True:
 #    p.stepSimulation()
 #    time.sleep(dt)
@@ -45,6 +43,10 @@ while t < 5:
     jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
     position_list.append(jointPosition)
 
+
+plt.grid(True)
+plt.xlabel('t', fontsize=12)
+plt.ylabel('x(t)', fontsize=12)
 plt.plot(time_list, position_list)
 plt.show()
 
