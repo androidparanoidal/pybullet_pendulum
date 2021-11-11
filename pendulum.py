@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 t = 0
 dt = 1/240  # pybullet simulation step
-q0 = 0.5   # starting position (radian)
+q0 = 1   # starting position (radian)
 physicsClient = p.connect(p.GUI)  # or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, -10)
@@ -48,21 +48,21 @@ while t < 5:
 length = 0.8
 g = 9.81
 koef = g/length
-q0_initial = [0.5, 0]  # нач знач: x(t=0) = 0.5, x'(t=0) = 0
+q0_initial = [1, 0]  # нач знач: x(t=0) = 1, x'(t=0) = 0
 
-# d^x/dt^2 + g/l * x = 0 решение которого: x(t) = c1*sin(sqrt(koef)*t) + c2*cos(sqrt(koef)*t)
+# d^x/dt^2 + g/l * sinx = 0 решение которого: x(t) = c1*sin(sqrt(koef)*t) + c2*cos(sqrt(koef)*t)
 def diff_pend(x, t):
-    return [x[1], -koef * x[0]]
+    return [x[1], -koef * np.sin(x[0])]
 
 t = np.linspace(0, 5, 5*240)
 solution = odeint(diff_pend, q0_initial, t)
 xs = solution[:, 0]
 
 
-# Численное решение по полунеявному м Эйлера (схема интегрирования в pybullet): v' = -koef*u и u'=v, замена в исходном v=x' и u=x
-u0 = 0.5
+# Численное решение по полунеявному м Эйлера (схема интегрирования в pybullet): v' = -koef*sin(u) и u'=v, замена в исходном v=x' и u=x
+u0 = 1
 v0 = 0
-n = 1200 # кол-во шагов
+n = 1200-1 # кол-во шагов
 h = 1/240 # шаг dt
 u = np.zeros(n+1)
 v = np.zeros(n+1)
@@ -71,26 +71,32 @@ u[0] = u0
 v[0] = v0
 
 for i in range(n):
-    v[i+1] = v[i] - koef * h * u[i]
+    v[i+1] = v[i] - koef * h * np.sin(u[i])
     u[i+1] = u[i] + h * v[i+1]
 
 
-def L2_norm(xs, position_list):
-    distance = np.sqrt(abs((np.array(xs) - np.array(position_list))**2))
-    return distance
+def L2_norm_1(xs, position_list):
+    distance1 = np.sqrt(abs((np.array(xs) - np.array(position_list)) ** 2))
+    return distance1,
 
-print('\nМодули разности: ', L2_norm(xs, position_list),
-      '\nНорма L2 = ', np.mean(L2_norm(xs, position_list)), '\n')
+def L2_norm_2(u, position_list):
+    distance2 = np.sqrt(abs((np.array(u) - np.array(position_list)) ** 2))
+    return distance2
+
+print('\nМодули разности между odeint и симуляторным решением: ', L2_norm_1(xs, position_list),
+      '\nНорма L2 = ', np.mean(L2_norm_1(xs, position_list)), '\n')
+print('\nМодули разности между м эйлера и симуляторным решением: ', L2_norm_2(u, position_list),
+      '\nНорма L2 = ', np.mean(L2_norm_2(u, position_list)), '\n')
 
 plt.figure()
 plt.grid(True)
 plt.xlabel('t', fontsize=12)
 plt.ylabel('x(t)', fontsize=12)
 plt.plot(time_list, position_list, color='c', label='симуляторное')
-plt.plot(t, xs, color='k', label='численное', linestyle = ':')
+plt.plot(t, xs, color='k', label='численное', linestyle=':', linewidth=2)
 plt.plot(vremya, u, color='r', label='эйлер')
 plt.legend(loc='best')
-plt.title('Сравнение симуляторного и численного решений:')
+plt.title('Сравнение симуляторного и численных решений:')
 #plt.text(0, -0.4, "L2 Норма = ПОНЯТЬ КАК ДОБАВИТЬ ПЕРЕМЕННУЮ....... ",)
 plt.show()
 
