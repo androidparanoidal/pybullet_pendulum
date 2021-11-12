@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 t = 0
 dt = 1/240  # pybullet simulation step
 q0 = 1   # starting position (radian)
-physicsClient = p.connect(p.GUI)  # or p.DIRECT for non-graphical version
+physicsClient = p.connect(p.DIRECT)  # or p.DIRECT for non-graphical version or p.GUI
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, -9.81)
 #planeId = p.loadURDF("plane.urdf")
@@ -43,18 +43,23 @@ while t < 5:
 
     time_list.append(t)
     t += dt
-    time.sleep(dt)
+#   time.sleep(dt)
 
 
 # Численное решение с помощью odeint
 length = 0.8
 g = 9.81
-koef = g/length
+b = 1
+m = 1
+koef1 = g/length
+koef2 = b/(m* length**2)
 q0_initial = [q0, 0]  # нач знач: x(t=0) = 1, x'(t=0) = 0
 
-# d^x/dt^2 + g/l * sinx = 0 решение которого: x(t) = c1*sin(sqrt(koef)*t) + c2*cos(sqrt(koef)*t)
-def diff_pend(x, t):
-    return [x[1], -koef * np.sin(x[0])]
+# d^x/dt^2 +  b/(m*l*l) * dx/dt + g/l * sinx = 0, где пусть
+def diff_pend(X, t):
+    x, x_new = X
+    dx_new = [x_new, -koef2 * x_new - koef1 * np.sin(x)]
+    return dx_new
 
 t = np.linspace(0, 5, 5*240)
 solution = odeint(diff_pend, q0_initial, t)
@@ -68,18 +73,20 @@ n = 1200-1 # кол-во шагов
 h = 1/240 # шаг dt
 u = np.zeros(n+1)
 v = np.zeros(n+1)
-vremya = np.linspace(0, n*h, n+1)
+#t1 = np.zeros(n+1) или
+t1 = np.linspace(0, n*h, n+1)
 u[0] = u0
 v[0] = v0
 
 for i in range(n):
-    v[i+1] = v[i] - koef * h * np.sin(u[i])
+    #t1[i+1] = t1[i] + h
+    v[i+1] = v[i] - koef2* h * v[i] - koef1 * h * np.sin(u[i])
     u[i+1] = u[i] + h * v[i+1]
 
 
 def L2_norm_1(xs, position_list):
     distance1 = np.sqrt(abs((np.array(xs) - np.array(position_list)) ** 2))
-    return distance1,
+    return distance1
 
 def L2_norm_2(u, position_list):
     distance2 = np.sqrt(abs((np.array(u) - np.array(position_list)) ** 2))
@@ -95,7 +102,7 @@ plt.grid(True)
 plt.xlabel('t', fontsize=12)
 plt.ylabel('x(t)', fontsize=12)
 plt.plot(t, xs, color='k', label='odeint', linestyle=':', linewidth=2)
-plt.plot(vremya, u, color='r', label='эйлер')
+plt.plot(t1, u, color='r', label='эйлер')
 plt.plot(time_list, position_list, color='c', label='симуляторное', linewidth=2)
 plt.legend(loc='best')
 plt.title('Сравнение симуляторного и численных решений:')
