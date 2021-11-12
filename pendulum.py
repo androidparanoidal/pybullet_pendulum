@@ -10,7 +10,7 @@ dt = 1/240  # pybullet simulation step
 q0 = 1   # starting position (radian)
 physicsClient = p.connect(p.GUI)  # or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
-p.setGravity(0, 0, -10)
+p.setGravity(0, 0, -9.81)
 #planeId = p.loadURDF("plane.urdf")
 boxId = p.loadURDF("./simple.urdf", useFixedBase=True)
 
@@ -23,6 +23,9 @@ p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=q0, contro
 for _ in range(1000):
     p.stepSimulation()
 
+jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
+q0 = jointPosition
+
 # turn off the motor for the free motion
 p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0)
 
@@ -34,21 +37,20 @@ position_list = []
 #    time.sleep(dt)      или...
 
 while t < 5:
+    jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
+    position_list.append(jointPosition)
     p.stepSimulation()
-    time.sleep(dt)
 
     time_list.append(t)
     t += dt
-
-    jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
-    position_list.append(jointPosition)
+    time.sleep(dt)
 
 
 # Численное решение с помощью odeint
 length = 0.8
 g = 9.81
 koef = g/length
-q0_initial = [1, 0]  # нач знач: x(t=0) = 1, x'(t=0) = 0
+q0_initial = [q0, 0]  # нач знач: x(t=0) = 1, x'(t=0) = 0
 
 # d^x/dt^2 + g/l * sinx = 0 решение которого: x(t) = c1*sin(sqrt(koef)*t) + c2*cos(sqrt(koef)*t)
 def diff_pend(x, t):
@@ -60,7 +62,7 @@ xs = solution[:, 0]
 
 
 # Численное решение по полунеявному м Эйлера (схема интегрирования в pybullet): v' = -koef*sin(u) и u'=v, замена в исходном v=x' и u=x
-u0 = 1
+u0 = q0
 v0 = 0
 n = 1200-1 # кол-во шагов
 h = 1/240 # шаг dt
@@ -92,12 +94,16 @@ plt.figure()
 plt.grid(True)
 plt.xlabel('t', fontsize=12)
 plt.ylabel('x(t)', fontsize=12)
-plt.plot(time_list, position_list, color='c', label='симуляторное')
-plt.plot(t, xs, color='k', label='численное', linestyle=':', linewidth=2)
+plt.plot(t, xs, color='k', label='odeint', linestyle=':', linewidth=2)
 plt.plot(vremya, u, color='r', label='эйлер')
+plt.plot(time_list, position_list, color='c', label='симуляторное', linewidth=2)
 plt.legend(loc='best')
 plt.title('Сравнение симуляторного и численных решений:')
-#plt.text(0, -0.4, "L2 Норма = ПОНЯТЬ КАК ДОБАВИТЬ ПЕРЕМЕННУЮ....... ",)
+okr1 = round(np.mean(L2_norm_2(u, position_list)), 7)
+okr2 = round(np.mean(L2_norm_2(xs, position_list)), 7)
+plt.text(0, -0.8, "Норма разности симуляторного решения и")
+plt.text(0, -0.9, "м. Эйлера = {}".format(okr1))
+plt.text(0, -1, "odeint = {}".format(okr2))
 plt.show()
 
 p.disconnect()
