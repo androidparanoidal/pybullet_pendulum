@@ -4,6 +4,8 @@ import pybullet_data
 from scipy.integrate import odeint
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+import scipy.optimize as scopt
 
 t = 0
 dt = 1/240  # pybullet simulation step
@@ -47,46 +49,79 @@ while t < 5:
 
 
 # Численное решение с помощью odeint
-length = 0.8
-g = 9.81
 b = 1
 m = 1
-koef1 = g/length
-koef2 = b/(m* length**2)
+length = 0.8
+g = 9.81
+koef1 = g/length   # = 12.2625
+koef2 = b/(m * length**2)  # = 1.5625
 q0_initial = [q0, 0]  # нач знач: x(t=0) = 1, x'(t=0) = 0
 
 # d^x/dt^2 +  b/(m*l*l) * dx/dt + g/l * sinx = 0, где пусть
-def diff_pend(X, t):
+def odesol(X, t, b, m, length, g):
     x, x_new = X
-    dx_new = [x_new, -koef2 * x_new - koef1 * np.sin(x)]
+    dx_new = [x_new, -(b/(m * length**2)) * x_new - (g/length) * np.sin(x)]
     return dx_new
 
 t = np.linspace(0, 5, 5*240)
-solution = odeint(diff_pend, q0_initial, t)
+solution = odeint(odesol, q0_initial, t, args=(b, m, length, g))
 xs = solution[:, 0]
 
 
 # Численное решение по полунеявному м Эйлера (схема интегрирования в pybullet): v' = -koef*sin(u) и u'=v, замена в исходном v=x' и u=x
-u0 = q0
-v0 = 0
 n = 1200-1 # кол-во шагов
 h = 1/240 # шаг dt
+
+u0 = q0
+v0 = 0
 u = np.zeros(n+1)
 v = np.zeros(n+1)
+
 #t1 = np.zeros(n+1) или
 t1 = np.linspace(0, n*h, n+1)
+
 u[0] = u0
 v[0] = v0
 
 for i in range(n):
     #t1[i+1] = t1[i] + h
-    v[i+1] = v[i] - koef2* h * v[i] - koef1 * h * np.sin(u[i])
+    v[i+1] = v[i] - koef2 * h * v[i] - koef1 * h * np.sin(u[i])
     u[i+1] = u[i] + h * v[i+1]
 
+
+
+
+'''
+def cost_function(xs, position_list, b, m, length, g):
+    norm = np.sqrt(abs((np.array(xs) - np.array(position_list)) ** 2))
+    return
+'''
 
 def L2_norm_1(xs, position_list):
     distance1 = np.sqrt(abs((np.array(xs) - np.array(position_list)) ** 2))
     return distance1
+
+def odesol2(X, t, koef1, koef2):
+    x, x_new = X
+    dx_new = [x_new, - koef2 * x_new - koef1 * np.sin(x)]
+    return dx_new
+
+
+guess = [1.0, 11.0]
+
+def func(par):
+    koef2, koef1 = par
+    solution2 = odeint(odesol2, q0_initial, t, args=(koef1, koef2))
+    norm = np.linalg.norm(solution2[:, 0] - solution[:, 0])
+    #norm = np.mean(L2_norm_1(solution, solution2))
+    return norm
+
+res = minimize(func, np.array(guess), method='Nelder-Mead')
+print(res, "\n")
+
+
+
+
 
 def L2_norm_2(u, position_list):
     distance2 = np.sqrt(abs((np.array(u) - np.array(position_list)) ** 2))
@@ -101,9 +136,9 @@ plt.figure()
 plt.grid(True)
 plt.xlabel('t', fontsize=12)
 plt.ylabel('x(t)', fontsize=12)
-plt.plot(t, xs, color='k', label='odeint', linestyle=':', linewidth=2)
+plt.plot(t, solution[:, 0], color='k', label='odeint', linestyle=':', linewidth=2)
 plt.plot(t1, u, color='r', label='эйлер')
-plt.plot(time_list, position_list, color='c', label='симуляторное', linewidth=2)
+plt.plot(time_list, position_list, color='c', label='симуляторное')
 plt.legend(loc='best')
 plt.title('Сравнение симуляторного и численных решений:')
 okr1 = round(np.mean(L2_norm_2(u, position_list)), 7)
