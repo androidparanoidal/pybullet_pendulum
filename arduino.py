@@ -22,7 +22,7 @@ dt = 1/40
 
 
 a = 906
-b = 0
+b = 819
 c = 0
 d = (math.pi)/2
 
@@ -31,9 +31,10 @@ alpha = []
 
 t3 = np.linspace(0, int(817/40), 817)
 
-for k in u2:
+for k in range(np.size(u2)):  #или for k in u2:
     #t2[k] = t2[k - 1] + dt
-    j = (((k - a) * (d - c)) / (b - a)) + c
+    j = (((u2[k] - a) * (d - c)) / (b - a)) + c
+    #j = d / a * (-u2[k] + a)
     alpha.append(j)
     #print(j)
 
