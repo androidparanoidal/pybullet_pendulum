@@ -2,7 +2,7 @@ from scipy.integrate import odeint
 import numpy as np
 import matplotlib.pyplot as plt
 
-q0 = 0.5
+q0 = 0.1
 a = 1
 
 def func_chm(fi, t):

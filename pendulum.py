@@ -5,11 +5,10 @@ from scipy.integrate import odeint
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-import scipy.optimize as scopt
 
 t = 0
 dt = 1/240  # pybullet simulation step
-q0 = 1   # starting position (radian)
+q0 = 1.58   # starting position (radian)
 physicsClient = p.connect(p.DIRECT)  # or p.DIRECT for non-graphical version or p.GUI
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, -9.81)
@@ -47,6 +46,8 @@ while t < 5:
     t += dt
 #   time.sleep(dt)
 
+#print(position_list)
+#print(time_list, '\n')
 
 # Численное решение с помощью odeint
 b = 1
@@ -57,7 +58,7 @@ koef1 = g/length   # = 12.2625
 koef2 = b/(m * length**2)  # = 1.5625
 q0_initial = [q0, 0]  # нач знач: x(t=0) = 1, x'(t=0) = 0
 
-# d^x/dt^2 +  b/(m*l*l) * dx/dt + g/l * sinx = 0, где пусть
+# d^2x/dt^2 +  b/(m*l*l) * dx/dt + g/l * sinx = 0, где пусть
 def odesol(X, t, b, m, length, g):
     x, x_new = X
     dx_new = [x_new, -(b/(m * length**2)) * x_new - (g/length) * np.sin(x)]
@@ -89,25 +90,13 @@ for i in range(n):
     u[i+1] = u[i] + h * v[i+1]
 
 
-
-
-'''
-def cost_function(xs, position_list, b, m, length, g):
-    norm = np.sqrt(abs((np.array(xs) - np.array(position_list)) ** 2))
-    return
-'''
-
-def L2_norm_1(xs, position_list):
-    distance1 = np.sqrt(abs((np.array(xs) - np.array(position_list)) ** 2))
-    return distance1
-
+# Оптимизация параметров д.у.
 def odesol2(X, t, koef1, koef2):
     x, x_new = X
     dx_new = [x_new, - koef2 * x_new - koef1 * np.sin(x)]
     return dx_new
 
-
-guess = [1.0, 11.0]
+guess = [1.0, 11.0]  #initial_guess
 
 def func(par):
     koef2, koef1 = par
@@ -120,8 +109,9 @@ res = minimize(func, np.array(guess), method='Nelder-Mead')
 print(res, "\n")
 
 
-
-
+def L2_norm_1(xs, position_list):
+    distance1 = np.sqrt(abs((np.array(xs) - np.array(position_list)) ** 2))
+    return distance1
 
 def L2_norm_2(u, position_list):
     distance2 = np.sqrt(abs((np.array(u) - np.array(position_list)) ** 2))

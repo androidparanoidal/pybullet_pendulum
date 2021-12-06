@@ -11,5 +11,5 @@ void loop() {
   //Serial.print("sensor = " );
   Serial.print(sensorValue);
   Serial.print(",");
-  delay(25);
+  delay(25); // 25мс = 0.025сек
 }
