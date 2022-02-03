@@ -8,8 +8,8 @@ from scipy.optimize import minimize
 
 t = 0
 dt = 1/240  # pybullet simulation step
-q0 = 1.58   # starting position (radian)
-physicsClient = p.connect(p.DIRECT)  # or p.DIRECT for non-graphical version or p.GUI
+q0 = 1.58   # starting position (radian) 1.58
+physicsClient = p.connect(p.GUI)  # or p.DIRECT for non-graphical version or p.GUI
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, -9.81)
 #planeId = p.loadURDF("plane.urdf")
@@ -46,8 +46,8 @@ while t < 5:
     t += dt
 #   time.sleep(dt)
 
-#print(position_list)
-#print(time_list, '\n')
+print(position_list)
+print(time_list, '\n')
 
 # Численное решение с помощью odeint
 b = 1
@@ -117,10 +117,12 @@ def L2_norm_2(u, position_list):
     distance2 = np.sqrt(abs((np.array(u) - np.array(position_list)) ** 2))
     return distance2
 
+'''
 print('\nМодули разности между odeint и симуляторным решением: ', L2_norm_1(xs, position_list),
       '\nНорма L2 = ', np.mean(L2_norm_1(xs, position_list)), '\n')
 print('\nМодули разности между м эйлера и симуляторным решением: ', L2_norm_2(u, position_list),
       '\nНорма L2 = ', np.mean(L2_norm_2(u, position_list)), '\n')
+'''
 
 plt.figure()
 plt.grid(True)
@@ -131,11 +133,11 @@ plt.plot(t1, u, color='r', label='эйлер')
 plt.plot(time_list, position_list, color='c', label='симуляторное')
 plt.legend(loc='best')
 plt.title('Сравнение симуляторного и численных решений:')
-okr1 = round(np.mean(L2_norm_2(u, position_list)), 7)
+'''okr1 = round(np.mean(L2_norm_2(u, position_list)), 7)
 okr2 = round(np.mean(L2_norm_2(xs, position_list)), 7)
 plt.text(0, -0.8, "Норма разности симуляторного решения и")
 plt.text(0, -0.9, "м. Эйлера = {}".format(okr1))
-plt.text(0, -1, "odeint = {}".format(okr2))
+plt.text(0, -1, "odeint = {}".format(okr2)) '''
 plt.show()
 
 p.disconnect()
