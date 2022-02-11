@@ -33,7 +33,8 @@ def sim_solution(q0):
     jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
     q0 = jointPosition
 
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0.1)
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0)
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=0.1)
     position_list = []
     while t < 5:
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
@@ -57,14 +58,15 @@ g = 9.81
 
 def odesol(X, t, b, m, length, g):
     x, x_new = X
-    dx_new = [x_new, -(b/(m * length**2)) * x_new - (g/length) * x]
+    dx_new = [x_new, -(b / (m * length**2)) * x_new - (g / length) * x]
     return dx_new
 
 
 t = np.linspace(0, 5, 5*240)
+force = 0.1
 #solution1 = odeint(odesol, [0.5, 0], t, args=(b, m, length, g))
 #solution2 = odeint(odesol, [(math.pi)/2, 0], t, args=(b, m, length, g))
-solution3 = odeint(odesol, [0, 0], t, args=(b, m, length, g))
+solution3 = odeint(odesol, [0, 0 + force / (m * g * length**2)], t, args=(b, m, length, g))
 
 
 pylab.figure(1)
