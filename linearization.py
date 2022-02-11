@@ -58,15 +58,19 @@ g = 9.81
 
 def odesol(X, t, b, m, length, g):
     x, x_new = X
-    dx_new = [x_new, -(b / (m * length**2)) * x_new - (g / length) * x]
+    force = 0
+    dt = 1/240
+    if (t < dt):
+        #upr = -k1 * x - k2 * dx
+        force = upr / (m * length**2)
+    dx_new = [x_new, -(b / (m * length**2)) * x_new - (g / length) * x + force]
     return dx_new
 
 
 t = np.linspace(0, 5, 5*240)
-force = 0.1
 #solution1 = odeint(odesol, [0.5, 0], t, args=(b, m, length, g))
 #solution2 = odeint(odesol, [(math.pi)/2, 0], t, args=(b, m, length, g))
-solution3 = odeint(odesol, [0, 0 + force / (m * g * length**2)], t, args=(b, m, length, g))
+solution3 = odeint(odesol, [0.1, 0], t, args=(b, m, length, g))
 
 
 pylab.figure(1)
