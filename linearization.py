@@ -58,12 +58,15 @@ g = 9.81
 
 def odesol(X, t, b, m, length, g):
     x, x_new = X
-    force = 0
+    '''Если управление на первом такте: 
     dt = 1/240
+    force = 0
     if (t < dt):
-        #upr = -k1 * x - k2 * dx
+        upr = 0.1
         force = upr / (m * length**2)
-    dx_new = [x_new, -(b / (m * length**2)) * x_new - (g / length) * x + force]
+    '''
+    k1, k2 = 1, 4
+    dx_new = [x_new, -(b / (m * length**2)) * x_new - (g / length) * x + (- k1 * x - k2 * x_new) / (m * length**2)]
     return dx_new
 
 
