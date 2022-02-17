@@ -6,7 +6,8 @@ import pylab
 import numpy as np
 import math
 import time
-from control.matlab import *
+import control
+import control.matlab
 from scipy import signal
 
 
@@ -25,13 +26,15 @@ b = 1
 m = 1
 length = 0.8
 g = 9.81
+c1 = b / (m * length ** 2)
+c2 = g / length
+c3 = m * length ** 2
 time_list = []
 position_list = []
 w_list = []
 
-
 # Симуляторное решение
-def sim_solution(q0, b, m, length, g):
+def sim_solution(q0, c1, c2, c3):
     t = 0
     dt = 1/240
     # go to the starting position
@@ -45,40 +48,37 @@ def sim_solution(q0, b, m, length, g):
     p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0)
     p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=0.1)
 
+    upr2_list = []
     position_list = []
     jointpos_prev = q0
-
+    A = np.array(([0.0, 1.0],
+                  [-c2, -c1]))
+    B = np.array(([0.0], [c3]))
+    poles = np.array(([-5], [-2]))
+    K = control.matlab.place(A, B, poles)
     while t < 5:
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
         position_list.append(jointPosition)
+
+        #upr2_list.append(jointPosition @ K)
         uglskor = (jointPosition - jointpos_prev)/dt
         w_list.append(uglskor)
         jointpos_prev = jointPosition
 
-        c1 = b / (m * length ** 2)
-        c2 = g / length
-        c3 = m * length ** 2
-        A = np.array(([0.0, 1.0],
-                      [-c2, -c1]))
-        B = np.array(([0.0], [c3]))
-        poles = np.array(([-5], [-2]))
-        K = place(A, B, poles)
-        torque = 5
-        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
+        #torque = K
+        #p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
         p.stepSimulation()
         time_list.append(t)
         t += dt
     return position_list
 
-#simsol1 = sim_solution(0.5, b, m, length, g)
-#simsol2 = sim_solution((math.pi)/2, b, m, length, g)
-simsol3 = sim_solution(0.1, b, m, length, g)
+#simsol1 = sim_solution(0.5, c1, c2, c3)
+#simsol2 = sim_solution((math.pi)/2, c1, c2, c3)
+simsol3 = sim_solution(0.1, c1, c2, c3)
 
 
-# Численное решение линейной системы d^2x/dt^2 +  b/(m*l*l) * dx/dt + g/l * x = 0
 # q0_initial = [q0, 0]  # нач знач: x(t=0) = 0 = q0, x'(t=0) = 0
-
-
+# Численное решение линейной системы d^2x/dt^2 +  b/(m*l*l) * dx/dt + g/l * x = 0
 def model_1(X, t, b, m, length, g):
     x, x_new = X
     '''#Если управление на первом такте: 
@@ -94,50 +94,48 @@ def model_1(X, t, b, m, length, g):
 
 
 t = np.linspace(0, 5, 5*240)
-#solution1 = odeint(odesol, [0.5, 0], t, args=(b, m, length, g))
-#solution2 = odeint(odesol, [(math.pi)/2, 0], t, args=(b, m, length, g))
+#solution1 = odeint(model_1, [0.5, 0], t, args=(b, m, length, g))
+#solution2 = odeint(model_1, [(math.pi)/2, 0], t, args=(b, m, length, g))
 solution3 = odeint(model_1, [0.1, 0], t, args=(b, m, length, g))
 
 
-c1 = b / (m * length**2)
-c2 = g / length
-c3 = m * length**2
 A = np.array(([0.0, 1.0],
               [-c2, -c1]))
 B = np.array(([0.0], [c3]))
-p = np.array(([-5], [-2]))
-K = place(A, B, p)
+poles = np.array(([-5], [-2]))
+K = control.matlab.place(A, B, poles)
 C = A - np.dot(B, K)
 print('\nК: ', K)
 print('Ранг матрицы А = ', np.linalg.matrix_rank(A))
 print('Ранг матрицы В = ', np.linalg.matrix_rank(B))
-print('Матрица преобразованной системы = ', C)
+print('Матрица преобразованной системы = С = ', C)
 print('Собственные числа и собственные вектора этой матрицы: ', np.linalg.eig(C))
 
-upr_list = []
 
+upr_list = np.array([])
 # Решение матричного уравнения dX/dt = A*X + B*u, X = [x, dx], управление u = -K*X => dX/dt = (A-B*K)*X
-def model_2(X, t, b, m, length, g):
-    c1 = b / (m * length ** 2)
-    c2 = g / length
-    c3 = m * length ** 2
+def model_2(X, t, c1, c2, c3):
     A = np.array(([0.0, 1.0],
                   [-c2, -c1]))
     B = np.array(([0.0], [c3]))
     p = np.array(([-5], [-2]))
-    K = place(A, B, p)
+    K = control.matlab.place(A, B, p)
     C = A - np.dot(B, K)
     X = np.array([X[0], X[1]])
-    upr_list.append(-np.dot(K, X))
 
     rhs = np.matmul(C, X)
     rhs = rhs.reshape(1, 2)
     dX_new = rhs.tolist()
+
+    U = np.array((-1) * np.dot(K, X))
+    global upr_list
+    upr_list = np.append(upr_list, U)
+
     return dX_new[0]
 
-m_solution = odeint(model_2, [0.1, 0] ,t, args=(b, m, length, g))
+m_solution = odeint(model_2, [0.1, 0] ,t, args=(c1, c2, c3))
 #print(m_solution[:, 0])
-
+#print(upr_list)
 
 color1 = (0.1, 0.2, 1.0)
 pylab.figure(1)
@@ -149,7 +147,8 @@ pylab.ylabel('x(t)', fontsize=12)
 #pylab.plot(t, solution1[:, 0], color='k', label='Линейная система при q0 = 0.1', linestyle=':')
 #pylab.plot(t, simsol2, color='g', label='Симуляторное при q0 = pi/2')
 #pylab.plot(t, solution2[:, 0], color='k', label='Линейная система при q0 = pi/2', linestyle=':')
-pylab.plot(t, simsol3, color=color1, label='Симуляторное при q0 = 0.1')
+pylab.plot(t, np.array(simsol3), color=color1, label='Симуляторное при q0 = 0.1')
+
 #pylab.plot(t, solution3[:, 0], color='k', label='Линейная система при q0 = 0.1', linestyle=':')
 pylab.plot(t, m_solution[:, 0], color='k', label='Решение матричного уравнения')
 pylab.legend()
@@ -165,13 +164,13 @@ pylab.plot(t, w_list, color=color1, label='Угловая скорость си�
 pylab.plot(t, m_solution[:, 1], color='k', label='Угловая скорость для матричной системы')
 pylab.legend()
 
-
+t1 = np.linspace(0, 5, 195)
 pylab.figure(3)
 pylab.grid()
 pylab.title("Графики управления:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('u', fontsize=12)
-#pylab.plot(t, upr_list[0], color=color1, label='Управление для симуляторного решения')
+pylab.plot(t1, upr_list, color='k', label='Управление для матричной системы')
 pylab.legend()
 
 '''
