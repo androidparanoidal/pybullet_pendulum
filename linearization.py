@@ -39,11 +39,14 @@ B = np.array(([0.0], [c3]))
 poles = np.array(([-5], [-2]))
 K = control.matlab.place(A, B, poles)
 C = A - np.dot(B, K)
+sch, sv = np.linalg.eig(C)
 print('\nК: ', K)
 print('Ранг матрицы А = ', np.linalg.matrix_rank(A))
 print('Ранг матрицы В = ', np.linalg.matrix_rank(B))
 print('Матрица преобразованной системы = С = ', C)
-print('Собственные числа и собственные вектора этой матрицы: ', np.linalg.eig(C))
+print('Собственные числа этой матрицы: ', sch)
+print('Собственные вектора этой матрицы: ', sv)
+print('Число обусловленности = ', np.linalg.cond(sv))
 
 
 # Симуляторное решение
@@ -63,8 +66,7 @@ def sim_solution(q0, c1, c2, c3):
 
     position_list = []
     jointpos_prev = q0
-    A = np.array(([0.0, 1.0],
-                  [-c2, -c1]))
+    A = np.array(([0.0, 1.0], [-c2, -c1]))
     B = np.array(([0.0], [c3]))
     poles = np.array(([-5], [-2]))
     K = control.matlab.place(A, B, poles)
@@ -78,9 +80,10 @@ def sim_solution(q0, c1, c2, c3):
         w_list.append(uglskor)
         jointpos_prev = jointPosition
 
-        a1 = K_m[0] * jointPosition
-        a2 = K_m[1] * uglskor
-        torque = (-1) * (a1 + a2) * c3
+        vec_0 = np.array(jointPosition)
+        vec_1 = np.array(uglskor)
+        vec_s = np.vstack((vec_0, vec_1))
+        torque = (-1) * (K_m @ vec_s)
 
         global upr_s_list
         upr_s_list = np.append(upr_s_list, torque)
@@ -119,28 +122,28 @@ solution3 = odeint(model_1, [0.1, 0], t, args=(b, m, length, g))
 
 # Решение матричного уравнения dX/dt = A*X + B*u, X = [x, dx], управление u = -K*X => dX/dt = (A-B*K)*X
 def model_2(X, t, c1, c2, c3):
-    A = np.array(([0.0, 1.0],
-                  [-c2, -c1]))
+    A = np.array(([0.0, 1.0], [-c2, -c1]))
     B = np.array(([0.0], [c3]))
     poles = np.array(([-5], [-2]))
     K = control.matlab.place(A, B, poles)
     C = A - np.dot(B, K)
     X = np.array([X[0], X[1]])
 
+    U = (-1) * np.array(K @ X)
+    global upr_m_list
+    upr_m_list = np.append(upr_m_list, U)
+
     rhs = np.matmul(C, X)
     rhs = rhs.reshape(1, 2)
     dX_new = rhs.tolist()
 
-    U = np.array((-1) * np.dot(K, X))
-    global upr_m_list
-    upr_m_list = np.append(upr_m_list, U)
-
     return dX_new[0]
+
 
 m_solution = odeint(model_2, [0.1, 0], t, args=(c1, c2, c3))
 #print(m_solution[:, 0])
-#print(len(m_solution[:, 0]))
-#print(upr_list)
+print(len(m_solution[:, 0]))
+print(len(upr_m_list))
 
 
 color1 = (0.1, 0.2, 1.0)
