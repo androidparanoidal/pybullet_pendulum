@@ -89,7 +89,7 @@ def sim_solution(q0, K):
 
 #simsol1 = sim_solution(0.5, c1, c2, c3)
 #simsol2 = sim_solution((math.pi)/2, c1, c2, c3)
-simsol3 = sim_solution(0.7, K)
+simsol3 = sim_solution(math.pi-0.1, K)
 # print('sim', simsol3)
 
 
@@ -161,7 +161,7 @@ def model_3(Y, t, c1, c2, c3):
     return dX_new[0]
 
 
-m2_solution = odeint(model_3, [0.7, 0], t, args=(c1, c2, c3))
+m2_solution = odeint(model_3, [math.pi-0.1, 0], t, args=(c1, c2, c3))
 
 
 color1 = (0.1, 0.2, 1.0)
@@ -175,8 +175,8 @@ pylab.ylabel('x(t)', fontsize=12)
 #pylab.plot(t, simsol2, color='g', label='Симуляторное при q0 = pi/2')
 #pylab.plot(t, solution2[:, 0], color='k', label='Линейная система при q0 = pi/2', linestyle=':')
 #pylab.plot(t, solution3[:, 0], color='r', label='Линейная система при q0 = pi', linestyle=':')
-pylab.plot(t, np.array(simsol3), color=color1, label='Симуляторное при q0 = pi')
-pylab.plot(t, m_solution[:, 0], color='k', label='Решение матричного уравнения')
+pylab.plot(t, np.array(simsol3), color=color1, label='Симуляторное при q0 = 0.1')
+#pylab.plot(t, m_solution[:, 0], color='k', label='Решение матричного уравнения')
 pylab.plot(t, m2_solution[:, 0], color='c', label='Решение матричного уравнения 2')
 pylab.legend()
 
@@ -188,7 +188,7 @@ pylab.xlabel('t', fontsize=12)
 pylab.ylabel('ω', fontsize=12)
 pylab.plot(t, w_list, color=color1, label='Угловая скорость симуляторного решения')
 #pylab.plot(t, solution3[:, 1], color='r', label=' ')
-pylab.plot(t, m_solution[:, 1], color='k', label='Угловая скорость для матричной системы')
+#pylab.plot(t, m_solution[:, 1], color='k', label='Угловая скорость для матричной системы')
 pylab.plot(t, m2_solution[:, 1], color='c', label='Угловая скорость для матричной системы 2')
 pylab.legend()
 
