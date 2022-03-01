@@ -9,10 +9,10 @@ from scipy.optimize import minimize
 t = 0
 dt = 1/240  # pybullet simulation step
 q0 = 1.58   # starting position (radian) 1.58
-physicsClient = p.connect(p.GUI)  # or p.DIRECT for non-graphical version or p.GUI
+physicsClient = p.connect(p.DIRECT)  # or p.DIRECT for non-graphical version or p.GUI
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, -9.81)
-#planeId = p.loadURDF("plane.urdf")
+# planeId = p.loadURDF("plane.urdf")
 boxId = p.loadURDF("./simple.urdf", useFixedBase=True)
 
 # get rid of all the default damping forces
@@ -51,7 +51,7 @@ print(time_list, '\n')
 
 # Численное решение с помощью odeint
 b = 1
-m = 1
+m = 2
 length = 0.8
 g = 9.81
 koef1 = g/length   # = 12.2625
@@ -78,14 +78,14 @@ v0 = 0
 u = np.zeros(n+1)
 v = np.zeros(n+1)
 
-#t1 = np.zeros(n+1) или
-t1 = np.linspace(0, n*h, n+1)
+t1 = np.zeros(n+1)
+#t1 = np.linspace(0, n*h, n+1)
 
 u[0] = u0
 v[0] = v0
 
 for i in range(n):
-    #t1[i+1] = t1[i] + h
+    t1[i+1] = t1[i] + h
     v[i+1] = v[i] - koef2 * h * v[i] - koef1 * h * np.sin(u[i])
     u[i+1] = u[i] + h * v[i+1]
 

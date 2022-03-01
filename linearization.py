@@ -33,7 +33,7 @@ upr_s_list = np.array([])
 
 A = np.array(([0.0, 1.0], [c2, -c1]))
 B = np.array(([0.0], [c3]))
-poles = np.array(([-5], [-2]))
+poles = np.array(([-50], [-20]))
 K = control.matlab.place(A, B, poles)
 C = A - np.dot(B, K)
 sch, sv = np.linalg.eig(C)
@@ -77,11 +77,12 @@ def sim_solution(q0, K):
         vec_0 = np.array(jointPosition-math.pi)
         vec_1 = np.array(uglskor)
         vec_s = np.vstack((vec_0, vec_1))
+        
         torque = (-1) * (K_m @ vec_s)
-
         global upr_s_list
         upr_s_list = np.append(upr_s_list, torque)
         p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
+
         p.stepSimulation()
         time_list.append(t)
         t += dt
@@ -119,7 +120,7 @@ solution3 = odeint(model_1, [math.pi, 0], t, args=(b, m, length, g))
 def model_2(X, t, c1, c2, c3):
     A = np.array(([0.0, 1.0], [-c2, -c1]))
     B = np.array(([0.0], [c3]))
-    poles = np.array(([-5], [-2]))
+    poles = np.array(([-50], [-20]))
     K = control.matlab.place(A, B, poles)
     C = A - np.dot(B, K)
     X = np.array([X[0], X[1]])
@@ -141,11 +142,11 @@ print(len(m_solution[:, 0]))
 print(len(upr_m_list))
 
 
-# Решение матричного уравнения с заменой dy/dt = A*y + B*u, y = [dx, x-pi]
+# Решение матричного уравнения с заменой dy/dt = A*y + B*u, y = [x-pi, dx]
 def model_3(Y, t, c1, c2, c3):
     A = np.array(([0.0, 1.0], [c2, -c1]))
     B = np.array(([0.0], [c3]))
-    poles = np.array(([-5], [-2]))
+    poles = np.array(([-50], [-20]))
     K = control.matlab.place(A, B, poles)
     C = A - np.dot(B, K)
     Y = np.array([Y[0]-math.pi, Y[1]])
@@ -162,6 +163,7 @@ def model_3(Y, t, c1, c2, c3):
 
 
 m2_solution = odeint(model_3, [math.pi-0.1, 0], t, args=(c1, c2, c3))
+
 
 
 color1 = (0.1, 0.2, 1.0)
