@@ -15,6 +15,7 @@ boxId = p.loadURDF("./simple.urdf", useFixedBase=True)
 p.changeDynamics(boxId, 1, linearDamping=0, angularDamping=0)
 p.changeDynamics(boxId, 2, linearDamping=0, angularDamping=0)
 
+dt = 1/240
 b = 1
 m = 2
 length = 0.8
@@ -22,12 +23,15 @@ g = 9.81
 c1 = b / (m * length ** 2)
 c2 = g / length
 c3 = 1 / (m * length ** 2)
+T = int(5/dt)
 
-time_list = []
-position_list = []
-w_list = []
+time_list = [0]*T
+position_list = [0]*T
+w_list = [0]*T
+
 upr_s_list = np.array([])
 u_buffer = []
+
 
 A = np.array(([0.0, 1.0], [c2, -c1]))
 B = np.array(([0.0], [c3]))
@@ -36,6 +40,7 @@ K = control.matlab.place(A, B, poles)
 C = A - np.dot(B, K)
 sch, sv = np.linalg.eig(C)
 
+'''
 print('\nК: ', K)
 print('Ранг матрицы А = ', np.linalg.matrix_rank(A))
 print('Ранг матрицы В = ', np.linalg.matrix_rank(B))
@@ -43,7 +48,7 @@ print('Матрица преобразованной системы = С = ', C)
 print('Собственные числа этой матрицы: ', sch)
 print('Собственные вектора этой матрицы: ', sv)
 print('Число обусловленности = ', np.linalg.cond(sv))
-
+'''
 
 # Симуляторное решение
 def sim_solution(q0, K):
@@ -58,21 +63,22 @@ def sim_solution(q0, K):
     q0 = jointPosition
 
     p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0)
+    T = int(5 / dt)
 
-    position_list = []
+    position_list = [0]*T
     jointpos_prev = q0
     K_m = (np.asarray(K)).flatten()
 
-    while t < 5:
+    for i in range(0, T):
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
-        position_list.append(jointPosition)
+        position_list[i] = jointPosition
 
-        uglskor = (jointPosition - jointpos_prev)/dt
-        w_list.append(uglskor)
+        jointVelocity = (jointPosition - jointpos_prev)/dt
+        w_list[i] = jointVelocity
         jointpos_prev = jointPosition
 
         vec_0 = np.array(jointPosition-math.pi)
-        vec_1 = np.array(uglskor)
+        vec_1 = np.array(jointVelocity)
         vec_s = np.vstack((vec_0, vec_1))
 
         global upr_s_list
@@ -83,24 +89,25 @@ def sim_solution(q0, K):
             torque = 0
             p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
                                     force=torque)
-            #upr_s_list[0] = torque_prev
+            upr_s_list = np.append(upr_s_list, torque)
 
         else:
             torque_prev = (-1) * (K_m @ vec_s)
             u_buffer[0] = torque_prev
             p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
                                     force=torque_prev)
+            upr_s_list = np.append(upr_s_list, torque_prev)
 
-
-        # upr_s_list = np.append(upr_s_list, torque)
         p.stepSimulation()
-        time_list.append(t)
+        time_list[i] = t
         t += dt
-
+    print(position_list)
+    print(w_list)
+    print(upr_s_list)
     return position_list
 
 
-simsol = sim_solution(0.1, K)
+simsol = sim_solution(math.pi-0.1, K)
 
 
 pylab.figure(1)
@@ -119,7 +126,6 @@ pylab.ylabel('ω', fontsize=12)
 pylab.plot(time_list, w_list, color='c', label='sim')
 pylab.legend()
 
-'''
 pylab.figure(3)
 pylab.grid()
 pylab.title("График управления:")
@@ -127,7 +133,6 @@ pylab.xlabel('t', fontsize=12)
 pylab.ylabel('u', fontsize=12)
 pylab.plot(time_list, upr_s_list, color='c', label='sim')
 pylab.legend()
-'''
 
 pylab.show()
 

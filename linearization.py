@@ -28,6 +28,7 @@ c3 = 1 / (m * length ** 2)
 time_list = []
 position_list = []
 w_list = []
+upr_m2_list = np.array([])
 upr_m_list = np.array([])
 upr_s_list = np.array([])
 
@@ -86,6 +87,9 @@ def sim_solution(q0, K):
         p.stepSimulation()
         time_list.append(t)
         t += dt
+    print(position_list)
+    print(w_list)
+    print(upr_s_list)
     return position_list
 
 #simsol1 = sim_solution(0.5, c1, c2, c3)
@@ -126,8 +130,8 @@ def model_2(X, t, c1, c2, c3):
     X = np.array([X[0], X[1]])
     # print(X)
     U = (-1) * np.array(K @ X)
-    global upr_m_list
-    upr_m_list = np.append(upr_m_list, U)
+    global upr_m2_list
+    upr_m2_list = np.append(upr_m2_list, U)
 
     rhs = np.matmul(C, X)
     rhs = rhs.reshape(1, 2)
@@ -138,8 +142,8 @@ def model_2(X, t, c1, c2, c3):
 
 m_solution = odeint(model_2, [(math.pi), 0], t, args=(c1, c2, c3))
 # print(m_solution[:, 0])
-print(len(m_solution[:, 0]))
-print(len(upr_m_list))
+# print(len(m_solution[:, 0]))
+# print(len(upr_m_list))
 
 
 # Решение матричного уравнения с заменой dy/dt = A*y + B*u, y = [x-pi, dx]
@@ -179,7 +183,7 @@ pylab.ylabel('x(t)', fontsize=12)
 #pylab.plot(t, solution3[:, 0], color='r', label='Линейная система при q0 = pi', linestyle=':')
 pylab.plot(t, np.array(simsol3), color=color1, label='Симуляторное при q0 = 0.1')
 #pylab.plot(t, m_solution[:, 0], color='k', label='Решение матричного уравнения')
-pylab.plot(t, m2_solution[:, 0], color='c', label='Решение матричного уравнения 2')
+# pylab.plot(t, m2_solution[:, 0], color='c', label='Решение матричного уравнения 2')
 pylab.legend()
 
 
@@ -189,23 +193,22 @@ pylab.title("Графики угловой скорости:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('ω', fontsize=12)
 pylab.plot(t, w_list, color=color1, label='Угловая скорость симуляторного решения')
-#pylab.plot(t, solution3[:, 1], color='r', label=' ')
-#pylab.plot(t, m_solution[:, 1], color='k', label='Угловая скорость для матричной системы')
-pylab.plot(t, m2_solution[:, 1], color='c', label='Угловая скорость для матричной системы 2')
+# pylab.plot(t, solution3[:, 1], color='r', label=' ')
+# pylab.plot(t, m_solution[:, 1], color='k', label='Угловая скорость для матричной системы')
+# pylab.plot(t, m2_solution[:, 1], color='c', label='Угловая скорость для матричной системы 2')
 pylab.legend()
 
 
-'''
-t1 = np.linspace(0, 5, 243)
+# t1 = np.linspace(0, 5, 316)
 pylab.figure(3)
 pylab.grid()
 pylab.title("Графики управления:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('u', fontsize=12)
-pylab.plot(t1, upr_m_list, color='k', label='Управление для матричной системы')
+# pylab.plot(t1, upr_m_list, color='k', label='Управление для матричной системы')
 pylab.plot(t, upr_s_list, color=color1, label='Управление для симуляторного решения')
 pylab.legend()
-'''
+
 
 '''
 pylab.figure(4)  # наверное можно циклом нарисовать..........
