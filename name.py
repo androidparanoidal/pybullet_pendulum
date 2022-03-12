@@ -101,6 +101,7 @@ def sim_solution(q0, K):
         p.stepSimulation()
         time_list[i] = t
         t += dt
+
     print(position_list)
     print(w_list)
     print(upr_s_list)
@@ -108,6 +109,39 @@ def sim_solution(q0, K):
 
 
 simsol = sim_solution(math.pi-0.1, K)
+
+
+def pendulum_func(Y, t, K, C):
+    Y = np.array([Y[0]-math.pi, Y[1]])
+    U = (-1) * np.array(K @ Y)
+    global upr_m_list
+    upr_m_list = np.append(upr_m_list, U)
+
+    rhs = np.matmul(C, Y)
+    rhs = rhs.reshape(1, 2)
+    dX_new = rhs.tolist()
+
+    return dX_new[0]
+
+
+def euler(func, q0, t):
+    n = t - 1
+    h = 1 / 240
+    u0 = q0
+    v0 = 0
+    u = np.zeros(n + 1)
+    v = np.zeros(n + 1)
+    #t = np.zeros(n + 1)
+    u[0] = u0
+    v[0] = v0
+
+    for i in range(n):
+        #t[i + 1] = t[i] + h
+        v[i + 1] = v[i] - h * v[i] - h * np.sin(u[i])
+        u[i + 1] = u[i] + h * v[i + 1]
+    return u
+
+el = euler(pendulum_func, math.pi-0.1, T)
 
 
 pylab.figure(1)
