@@ -23,12 +23,16 @@ g = 9.81
 c1 = b / (m * length ** 2)
 c2 = g / length
 c3 = 1 / (m * length ** 2)
-T = int(5/dt)
+T = int(5 / dt)
 
 time_list = [0]*T
 position_list = [0]*T
 w_list = [0]*T
+position_list2 = []
+time_list2 = []
+w_list2 = []
 
+upr_s2_list = np.array([])
 upr_s_list = np.array([])
 u_buffer = []
 
@@ -50,8 +54,9 @@ print('Собственные вектора этой матрицы: ', sv)
 print('Число обусловленности = ', np.linalg.cond(sv))
 '''
 
-# Симуляторное решение
-def sim_solution(q0, K):
+
+# Симуляторное решение с запаздыванием
+def sim_sol_delay(q0, K):
     t = 0
     dt = 1/240
     # go to the starting position
@@ -83,7 +88,7 @@ def sim_solution(q0, K):
 
         global upr_s_list
 
-        if t < dt:
+        if t < 10 * dt:
             torque_prev = (-1) * (K_m @ vec_s)
             u_buffer.append(torque_prev)
             torque = 0
@@ -93,22 +98,78 @@ def sim_solution(q0, K):
 
         else:
             torque_prev = (-1) * (K_m @ vec_s)
-            u_buffer[0] = torque_prev
+            u_buffer.append(torque_prev)
+            torque = u_buffer[-10]
+
             p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
-                                    force=torque_prev)
+                                    force=torque)
             upr_s_list = np.append(upr_s_list, torque_prev)
 
         p.stepSimulation()
         time_list[i] = t
         t += dt
 
+    print('Сим delay...')
+    print('буфер:', u_buffer)
     print(position_list)
-    print(w_list)
-    print(upr_s_list)
+    # print(w_list)
+    for e in upr_s_list:
+        print(e, end=" ")
+    print('\n')
+
     return position_list
 
 
-simsol = sim_solution(math.pi-0.1, K)
+ssol_delay = sim_sol_delay(math.pi-0.1, K)
+
+
+# Симуляторное решение
+def sim_sol(q0, K):
+    t = 0
+    dt = 1 / 240
+    # go to the starting position
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=q0, controlMode=p.POSITION_CONTROL)
+    for _ in range(1000):
+        p.stepSimulation()
+
+    jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
+    q0 = jointPosition
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0)
+    position_list2 = []
+    jointpos_prev = q0
+    K_m = (np.asarray(K)).flatten()
+
+    while t < 5:
+        jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
+        position_list2.append(jointPosition)
+
+        uglskor = (jointPosition - jointpos_prev) / dt
+        w_list2.append(uglskor)
+        jointpos_prev = jointPosition
+
+        vec_0 = np.array(jointPosition - math.pi)
+        vec_1 = np.array(uglskor)
+        vec_s = np.vstack((vec_0, vec_1))
+
+        torque = (-1) * (K_m @ vec_s)
+        global upr_s2_list
+        upr_s2_list = np.append(upr_s2_list, torque)
+        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
+                                force=torque)
+
+        p.stepSimulation()
+        time_list2.append(t)
+        t += dt
+
+    print('\nСимулятор:', position_list2)
+    # print(w_list2)
+    for e in upr_s2_list:
+        print(e, end=" ")
+
+    return position_list2
+
+
+ssol = sim_sol(math.pi-0.1, K)
 
 
 def pendulum_func(Y, t, K, C):
@@ -141,6 +202,7 @@ def euler(func, q0, t):
         u[i + 1] = u[i] + h * v[i + 1]
     return u
 
+
 el = euler(pendulum_func, math.pi-0.1, T)
 
 
@@ -149,7 +211,8 @@ pylab.grid()
 pylab.title("График симуляторного решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
-pylab.plot(time_list, np.array(simsol), color='c', label='sim')
+pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
+pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
 pylab.legend()
 
 pylab.figure(2)
@@ -157,7 +220,8 @@ pylab.grid()
 pylab.title("График угловой скорости:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('ω', fontsize=12)
-pylab.plot(time_list, w_list, color='c', label='sim')
+pylab.plot(time_list, w_list, color='c', label='sim delay')
+pylab.plot(time_list, w_list2, color='k', linestyle=':', label='sim')
 pylab.legend()
 
 pylab.figure(3)
@@ -165,7 +229,8 @@ pylab.grid()
 pylab.title("График управления:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('u', fontsize=12)
-pylab.plot(time_list, upr_s_list, color='c', label='sim')
+pylab.plot(time_list, upr_s_list, color='c', label='sim delay')
+pylab.plot(time_list, upr_s2_list, color='k', linestyle=':', label='sim')
 pylab.legend()
 
 pylab.show()
