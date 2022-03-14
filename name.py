@@ -34,8 +34,9 @@ w_list2 = []
 
 upr_s2_list = np.array([])
 upr_s_list = np.array([])
-u_buffer = []
 
+u_buffer = []
+u_buff = [0 for j in range(10)]
 
 A = np.array(([0.0, 1.0], [c2, -c1]))
 B = np.array(([0.0], [c3]))
@@ -73,6 +74,7 @@ def sim_sol_delay(q0, K):
     position_list = [0]*T
     jointpos_prev = q0
     K_m = (np.asarray(K)).flatten()
+    u_buff = [0 for j in range(10)]
 
     for i in range(0, T):
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
@@ -99,7 +101,7 @@ def sim_sol_delay(q0, K):
         else:
             torque_prev = (-1) * (K_m @ vec_s)
             u_buffer.append(torque_prev)
-            torque = u_buffer[-10]
+            torque = u_buffer[-1]
 
             p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
                                     force=torque)
@@ -109,13 +111,17 @@ def sim_sol_delay(q0, K):
         time_list[i] = t
         t += dt
 
-    print('Сим delay...')
-    print('буфер:', u_buffer)
-    print(position_list)
-    # print(w_list)
+    print('Симулятор delay...')
     for e in upr_s_list:
         print(e, end=" ")
     print('\n')
+    print('Буфер: ')
+    for el in u_buffer:
+        print(el, end=" ")
+    print('\n')
+    # print(position_list)
+    # print(w_list)
+
 
     return position_list
 
@@ -161,7 +167,8 @@ def sim_sol(q0, K):
         time_list2.append(t)
         t += dt
 
-    print('\nСимулятор:', position_list2)
+    print('\nСимулятор...')
+    # print(position_list2)
     # print(w_list2)
     for e in upr_s2_list:
         print(e, end=" ")
@@ -192,12 +199,12 @@ def euler(func, q0, t):
     v0 = 0
     u = np.zeros(n + 1)
     v = np.zeros(n + 1)
-    #t = np.zeros(n + 1)
+    # t = np.zeros(n + 1)
     u[0] = u0
     v[0] = v0
 
     for i in range(n):
-        #t[i + 1] = t[i] + h
+        # t[i + 1] = t[i] + h
         v[i + 1] = v[i] - h * v[i] - h * np.sin(u[i])
         u[i + 1] = u[i] + h * v[i + 1]
     return u
