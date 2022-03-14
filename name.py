@@ -4,6 +4,7 @@ import pylab
 import numpy as np
 import math
 import control.matlab
+import collections
 
 p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -35,8 +36,15 @@ w_list2 = []
 upr_s2_list = np.array([])
 upr_s_list = np.array([])
 
-u_buffer = []
-u_buff = [0 for j in range(10)]
+# u_buff = collections.deque([0 for j in range(10)])
+u_buff = [0 for k in range(10)]
+
+'''
+a_list = collections.deque([1, 2, 3, 4, 5])
+a_list.rotate(2)
+shifted_list = list(a_list)
+print(shifted_list)
+'''
 
 A = np.array(([0.0, 1.0], [c2, -c1]))
 B = np.array(([0.0], [c3]))
@@ -77,6 +85,7 @@ def sim_sol_delay(q0, K):
     u_buff = [0 for j in range(10)]
 
     for i in range(0, T):
+        global upr_s_list
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
         position_list[i] = jointPosition
 
@@ -88,24 +97,14 @@ def sim_sol_delay(q0, K):
         vec_1 = np.array(jointVelocity)
         vec_s = np.vstack((vec_0, vec_1))
 
-        global upr_s_list
-
-        if t < 10 * dt:
-            torque_prev = (-1) * (K_m @ vec_s)
-            u_buffer.append(torque_prev)
-            torque = 0
-            p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
-                                    force=torque)
-            upr_s_list = np.append(upr_s_list, torque)
-
-        else:
-            torque_prev = (-1) * (K_m @ vec_s)
-            u_buffer.append(torque_prev)
-            torque = u_buffer[-1]
-
-            p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
-                                    force=torque)
-            upr_s_list = np.append(upr_s_list, torque_prev)
+        torque = u_buff[0]
+        upr_s_list = np.append(upr_s_list, torque)
+        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
+                                force=torque)
+        u_buff.pop(0)
+        torque_prev = (-1) * (K_m @ vec_s)
+        u_buff.append(torque_prev)
+        print(u_buff)
 
         p.stepSimulation()
         time_list[i] = t
@@ -115,10 +114,7 @@ def sim_sol_delay(q0, K):
     for e in upr_s_list:
         print(e, end=" ")
     print('\n')
-    print('Буфер: ')
-    for el in u_buffer:
-        print(el, end=" ")
-    print('\n')
+
     # print(position_list)
     # print(w_list)
 
