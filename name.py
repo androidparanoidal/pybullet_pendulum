@@ -4,7 +4,7 @@ import pylab
 import numpy as np
 import math
 import control.matlab
-import collections
+# import collections
 
 p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -37,7 +37,7 @@ upr_s2_list = np.array([])
 upr_s_list = np.array([])
 
 # u_buff = collections.deque([0 for j in range(10)])
-u_buff = [0 for k in range(10)]
+u_buff = []
 
 '''
 a_list = collections.deque([1, 2, 3, 4, 5])
@@ -48,7 +48,7 @@ print(shifted_list)
 
 A = np.array(([0.0, 1.0], [c2, -c1]))
 B = np.array(([0.0], [c3]))
-poles = np.array(([-50], [-20]))
+poles = np.array(([-10], [-4]))
 K = control.matlab.place(A, B, poles)
 C = A - np.dot(B, K)
 sch, sv = np.linalg.eig(C)
@@ -82,7 +82,7 @@ def sim_sol_delay(q0, K):
     position_list = [0]*T
     jointpos_prev = q0
     K_m = (np.asarray(K)).flatten()
-    u_buff = [0 for j in range(10)]
+    u_buff = [0 for j in range(20)]
 
     for i in range(0, T):
         global upr_s_list
@@ -104,7 +104,6 @@ def sim_sol_delay(q0, K):
         u_buff.pop(0)
         torque_prev = (-1) * (K_m @ vec_s)
         u_buff.append(torque_prev)
-        print(u_buff)
 
         p.stepSimulation()
         time_list[i] = t
@@ -117,8 +116,6 @@ def sim_sol_delay(q0, K):
 
     # print(position_list)
     # print(w_list)
-
-
     return position_list
 
 
