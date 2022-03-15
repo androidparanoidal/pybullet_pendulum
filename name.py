@@ -188,23 +188,26 @@ def pendulum_func(Y, t, K, C):
 def euler(func, q0, t):
     n = t - 1
     h = 1 / 240
-    u0 = q0
+    w0 = q0
     v0 = 0
-    u = np.zeros(n + 1)
+    w = np.zeros(n + 1)
     v = np.zeros(n + 1)
-    # t = np.zeros(n + 1)
-    u[0] = u0
+    w[0] = w0
     v[0] = v0
-
+    b = 1
+    m = 2
+    length = 0.8
+    g = 9.81
+    koef1 = g / length
+    koef2 = b / (m * length ** 2)
     for i in range(n):
-        # t[i + 1] = t[i] + h
-        v[i + 1] = v[i] - h * v[i] - h * np.sin(u[i])
-        u[i + 1] = u[i] + h * v[i + 1]
-    return u
+        v[i + 1] = v[i] - koef2 * h * v[i] - koef1 * h * w[i]
+        w[i + 1] = w[i] + h * v[i + 1]
+    return w
 
 
-el = euler(pendulum_func, math.pi-0.1, T)
-
+el_sol = euler(pendulum_func, math.pi-0.1, T)
+t1 = np.linspace(0, 1200*1/240, 1200)
 
 pylab.figure(1)
 pylab.grid()
@@ -212,9 +215,10 @@ pylab.title("График симуляторного решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
 pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
+pylab.plot(t1, np.array(el_sol), color='r', label='euler')
 pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
 pylab.legend()
-
+''''
 pylab.figure(2)
 pylab.grid()
 pylab.title("График угловой скорости:")
@@ -232,7 +236,7 @@ pylab.ylabel('u', fontsize=12)
 pylab.plot(time_list, upr_s_list, color='c', label='sim delay')
 pylab.plot(time_list, upr_s2_list, color='k', linestyle=':', label='sim')
 pylab.legend()
-
+'''
 pylab.show()
 
 p.disconnect()
