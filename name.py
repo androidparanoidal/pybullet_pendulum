@@ -35,6 +35,7 @@ w_list2 = []
 
 upr_s2_list = np.array([])
 upr_s_list = np.array([])
+upr_pen_list = np.array([])
 
 # u_buff = collections.deque([0 for j in range(10)])
 u_buff = []
@@ -52,6 +53,7 @@ poles = np.array(([-10], [-4]))
 K = control.matlab.place(A, B, poles)
 C = A - np.dot(B, K)
 sch, sv = np.linalg.eig(C)
+K_m = (np.asarray(K)).flatten()
 
 '''
 print('\nК: ', K)
@@ -65,7 +67,7 @@ print('Число обусловленности = ', np.linalg.cond(sv))
 
 
 # Симуляторное решение с запаздыванием
-def sim_sol_delay(q0, K):
+def sim_sol_delay(q0, K_m):
     t = 0
     dt = 1/240
     # go to the starting position
@@ -81,7 +83,6 @@ def sim_sol_delay(q0, K):
 
     position_list = [0]*T
     jointpos_prev = q0
-    K_m = (np.asarray(K)).flatten()
     u_buff = [0 for j in range(20)]
 
     for i in range(0, T):
@@ -108,14 +109,14 @@ def sim_sol_delay(q0, K):
         p.stepSimulation()
         time_list[i] = t
         t += dt
-
+    '''
     print('Симулятор delay...')
     for e in upr_s_list:
         print(e, end=" ")
     print('\n')
-
-    # print(position_list)
-    # print(w_list)
+    print(position_list)
+    print(w_list)
+    '''
     return position_list
 
 
@@ -123,7 +124,7 @@ ssol_delay = sim_sol_delay(math.pi-0.1, K)
 
 
 # Симуляторное решение
-def sim_sol(q0, K):
+def sim_sol(q0, K_m):
     t = 0
     dt = 1 / 240
     # go to the starting position
@@ -136,7 +137,6 @@ def sim_sol(q0, K):
     p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0)
     position_list2 = []
     jointpos_prev = q0
-    K_m = (np.asarray(K)).flatten()
 
     while t < 5:
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
@@ -159,54 +159,66 @@ def sim_sol(q0, K):
         p.stepSimulation()
         time_list2.append(t)
         t += dt
-
+    '''
     print('\nСимулятор...')
-    # print(position_list2)
-    # print(w_list2)
+    print(position_list2)
+    print(w_list2)
     for e in upr_s2_list:
         print(e, end=" ")
-
+    '''
     return position_list2
 
 
 ssol = sim_sol(math.pi-0.1, K)
 
+print('test:')
+vect = np.array(([2], [-1]))
+print('исходный \n', vect)
+vect = np.delete(vect, 0)
+buff = [1, 2, 3, 4, 5]
+chvec = np.insert(vect, 0, buff[4], axis=0)
+print('измененный ', chvec)
+print('result:')
+newvec = np.reshape(chvec, (-1, 1))
+print(newvec)
 
-def pendulum_func(Y, t, K, C):
-    Y = np.array([Y[0]-math.pi, Y[1]])
-    U = (-1) * np.array(K @ Y)
-    global upr_m_list
-    upr_m_list = np.append(upr_m_list, U)
 
-    rhs = np.matmul(C, Y)
-    rhs = rhs.reshape(1, 2)
-    dX_new = rhs.tolist()
+u_b = [0 for j in range(20)]
 
-    return dX_new[0]
+def pendulum_func(Y, t, A, B, K_m):
+    Y = np.array(([Y[0]-math.pi],
+                  [Y[1]]))
+    global upr_pen_list
+    Upr = u_b[0]
+    upr_pen_list = np.append(upr_pen_list, Upr)
+    dy = np.matmul(A, Y) + (B * Upr)
+    u_b.pop(0)
+    Upr_prev = (-1) * (K_m @ Y)
+    u_b.append(Upr_prev)
+
+    dy = dy.reshape(1, 2)
+    dY_new = dy.tolist()
+    return dY_new[0]
 
 
 def euler(func, q0, t):
     n = t - 1
     h = 1 / 240
-    w0 = q0
+    p0 = q0
     v0 = 0
-    w = np.zeros(n + 1)
-    v = np.zeros(n + 1)
-    w[0] = w0
-    v[0] = v0
-    b = 1
-    m = 2
-    length = 0.8
-    g = 9.81
-    koef1 = g / length
-    koef2 = b / (m * length ** 2)
+    pos = [p0, v0]
+    pos_m = np.array(pos)
     for i in range(n):
-        v[i + 1] = v[i] - koef2 * h * v[i] - koef1 * h * w[i]
-        w[i + 1] = w[i] + h * v[i + 1]
-    return w
+        f = pendulum_func(pos, 0, A, B, K_m)[1]
+        pos[1] = pos[1] + h * f
+        pos[0] = pos[0] + h * pos[1]
+        pos_m = np.vstack((pos_m, pos))
+    # print(pos_m)
+    return pos_m
 
 
 el_sol = euler(pendulum_func, math.pi-0.1, T)
+# print(el_sol)
 t1 = np.linspace(0, 1200*1/240, 1200)
 
 pylab.figure(1)
@@ -215,10 +227,10 @@ pylab.title("График симуляторного решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
 pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
-pylab.plot(t1, np.array(el_sol), color='r', label='euler')
+pylab.plot(t1, el_sol[:, 0], color='r', label='euler')
 pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
 pylab.legend()
-''''
+'''
 pylab.figure(2)
 pylab.grid()
 pylab.title("График угловой скорости:")

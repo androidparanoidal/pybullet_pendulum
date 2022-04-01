@@ -127,6 +127,7 @@ def model_2(X, t, c1, c2, c3):
     poles = np.array(([-50], [-20]))
     K = control.matlab.place(A, B, poles)
     C = A - np.dot(B, K)
+
     X = np.array([X[0], X[1]])
     # print(X)
     U = (-1) * np.array(K @ X)
@@ -182,8 +183,8 @@ pylab.ylabel('x(t)', fontsize=12)
 #pylab.plot(t, solution2[:, 0], color='k', label='Линейная система при q0 = pi/2', linestyle=':')
 #pylab.plot(t, solution3[:, 0], color='r', label='Линейная система при q0 = pi', linestyle=':')
 pylab.plot(t, np.array(simsol3), color=color1, label='Симуляторное при q0 = 0.1')
-#pylab.plot(t, m_solution[:, 0], color='k', label='Решение матричного уравнения')
-# pylab.plot(t, m2_solution[:, 0], color='c', label='Решение матричного уравнения 2')
+pylab.plot(t, m_solution[:, 0], color='k', label='Решение матричного уравнения')
+pylab.plot(t, m2_solution[:, 0], color='c', label='Решение матричного уравнения 2')
 pylab.legend()
 
 
