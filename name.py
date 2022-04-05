@@ -47,6 +47,7 @@ shifted_list = list(a_list)
 print(shifted_list)
 '''
 
+
 A = np.array(([0.0, 1.0], [c2, -c1]))
 B = np.array(([0.0], [c3]))
 poles = np.array(([-10], [-4]))
@@ -171,16 +172,47 @@ def sim_sol(q0, K_m):
 
 ssol = sim_sol(math.pi-0.1, K)
 
+'''
 print('test:')
 vect = np.array(([2], [-1]))
+print(vect[0][0], '&', vect[1][0])
+buff = [1, 2, 3, 4, 5]
 print('исходный \n', vect)
 vect = np.delete(vect, 0)
-buff = [1, 2, 3, 4, 5]
 chvec = np.insert(vect, 0, buff[4], axis=0)
+chvec = np.delete(chvec, 1)
+chvec = np.insert(chvec, 1, buff[3], axis=0)
 print('измененный ', chvec)
 print('result:')
 newvec = np.reshape(chvec, (-1, 1))
 print(newvec)
+'''
+
+print('\ntest2:')
+matr = np.array(([1, 2],
+                 [3, 4],
+                 [5, 6],
+                 [7, 8],
+                 [9, 0],
+                 [5, 1],
+                 [2, 3]))
+print('исходная: ', matr)
+print(np.shape(matr), '& column shape =', matr.shape[0])
+nn = matr.shape[0]
+mm = 4
+for l in range(mm):
+    matr = np.delete(matr, [l][0])
+print('itog1 =', matr, 'size = ', np.shape(matr))
+matr = matr[mm:]
+print('itog2 =', matr)
+newmatr = np.reshape(matr, (nn-mm, 2))
+print('result:', newmatr)
+print('size: ', np.shape(newmatr))
+print("\n")
+
+
+def test(Y, t):
+    return np.array(([Y[0]-math.pi], [Y[1]]))
 
 
 u_b = [0 for j in range(20)]
@@ -188,6 +220,7 @@ u_b = [0 for j in range(20)]
 def pendulum_func(Y, t, A, B, K_m):
     Y = np.array(([Y[0]-math.pi],
                   [Y[1]]))
+    #print(Y)
     global upr_pen_list
     Upr = u_b[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
@@ -201,14 +234,16 @@ def pendulum_func(Y, t, A, B, K_m):
     return dY_new[0]
 
 
+TM = [0] * T
 def euler(func, q0, t):
-    n = t - 1
-    h = 1 / 240
+    n = np.size(t) - 1
+    h = 1/240
     p0 = q0
     v0 = 0
     pos = [p0, v0]
     pos_m = np.array(pos)
     for i in range(n):
+        t[i+1] = t[i] + h
         f = pendulum_func(pos, 0, A, B, K_m)[1]
         pos[1] = pos[1] + h * f
         pos[0] = pos[0] + h * pos[1]
@@ -217,8 +252,27 @@ def euler(func, q0, t):
     return pos_m
 
 
-el_sol = euler(pendulum_func, math.pi-0.1, T)
-# print(el_sol)
+test_sol = euler(test, math.pi-0.1, TM)
+
+#print(test_sol)
+print('size ishodn: ', np.shape(test_sol))
+n = test_sol.shape[0]
+m = 20
+# print('1st line', test_sol[0][0], '&', test_sol[0][1])
+# print('2nd line', test_sol[1][0], '&', test_sol[1][1])
+# print('3d  line', test_sol[2][0], '&', test_sol[2][1])
+
+for k in range(m):
+    test_sol = np.delete(test_sol, [k][0])
+test_sol = test_sol[m:]
+ntest_sol = np.reshape(test_sol, (n-m, 2))
+print(ntest_sol)
+print('size: ', np.shape(ntest_sol))
+
+
+
+el_sol = euler(pendulum_func, math.pi-0.1, TM)
+#print(el_sol)
 t1 = np.linspace(0, 1200*1/240, 1200)
 
 pylab.figure(1)
