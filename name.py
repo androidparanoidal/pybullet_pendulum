@@ -200,6 +200,7 @@ print('исходная: ', matr)
 print(np.shape(matr), '& column shape =', matr.shape[0])
 nn = matr.shape[0]
 mm = 4
+#
 for l in range(mm):
     matr = np.delete(matr, [l][0])
 print('itog1 =', matr, 'size = ', np.shape(matr))
