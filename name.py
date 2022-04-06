@@ -121,9 +121,6 @@ def sim_sol_delay(q0, K_m):
     return position_list
 
 
-ssol_delay = sim_sol_delay(math.pi-0.1, K)
-
-
 # Симуляторное решение
 def sim_sol(q0, K_m):
     t = 0
@@ -169,7 +166,7 @@ def sim_sol(q0, K_m):
     '''
     return position_list2
 
-
+ssol_delay = sim_sol_delay(math.pi-0.1, K)
 ssol = sim_sol(math.pi-0.1, K)
 
 '''
@@ -188,19 +185,13 @@ newvec = np.reshape(chvec, (-1, 1))
 print(newvec)
 '''
 
+'''
 print('\ntest2:')
-matr = np.array(([1, 2],
-                 [3, 4],
-                 [5, 6],
-                 [7, 8],
-                 [9, 0],
-                 [5, 1],
-                 [2, 3]))
+matr = np.array(([1, 2],[3, 4],[5, 6],[7, 8],[9, 0],[5, 1],[2, 3]))
 print('исходная: ', matr)
 print(np.shape(matr), '& column shape =', matr.shape[0])
 nn = matr.shape[0]
 mm = 4
-#
 for l in range(mm):
     matr = np.delete(matr, [l][0])
 print('itog1 =', matr, 'size = ', np.shape(matr))
@@ -210,18 +201,61 @@ newmatr = np.reshape(matr, (nn-mm, 2))
 print('result:', newmatr)
 print('size: ', np.shape(newmatr))
 print("\n")
+'''
 
 
-def test(Y, t):
-    return np.array(([Y[0]-math.pi], [Y[1]]))
+def euler(func, q0, t):
+    N = np.size(t) - 1
+    h = 1/240
+    p0 = q0
+    v0 = 0
+    pos = [p0, v0]
+    pos_m = np.array(pos)
+    for i in range(N):
+        t[i+1] = t[i] + h
+        f = pendulum_func(pos, 0, A, B, K_m)[1]
+        pos[1] = pos[1] + h * f
+        pos[0] = pos[0] + h * pos[1]
+        pos_m = np.vstack((pos_m, pos))
+    # print(pos_m)
+    return pos_m
 
 
-u_b = [0 for j in range(20)]
+m = 20  # шаг вперед
+u_b = [0 for j in range(m)]
+
 
 def pendulum_func(Y, t, A, B, K_m):
     Y = np.array(([Y[0]-math.pi],
                   [Y[1]]))
-    #print(Y)
+    global upr_pen_list
+    Upr = u_b[0]
+    upr_pen_list = np.append(upr_pen_list, Upr)
+    dy = np.matmul(A, Y) + (B * Upr)
+    u_b.pop(0)
+    Upr_prev = (-1) * (K_m @ Y)
+    u_b.append(Upr_prev)
+
+    dy = dy.reshape(1, 2)
+    dY_new = dy.tolist()
+    return dY_new[0]
+
+def test(X, t):
+    return np.array(([X[0]-math.pi], [X[1]]))
+
+
+TM = [0] * T
+test_sol = euler(test, math.pi-0.1, TM)
+n = test_sol.shape[0]
+
+for k in range(m):
+    test_sol = np.delete(test_sol, [k][0])
+test_sol = test_sol[m:]
+test_sol = np.reshape(test_sol, (n-m, 2))
+
+
+def pendulum_func2(Y, t, A, B, K_m):
+    Y = np.array(([Y[0]-math.pi], [Y[1]]))
     global upr_pen_list
     Upr = u_b[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
@@ -235,56 +269,27 @@ def pendulum_func(Y, t, A, B, K_m):
     return dY_new[0]
 
 
-TM = [0] * T
-def euler(func, q0, t):
-    n = np.size(t) - 1
-    h = 1/240
-    p0 = q0
-    v0 = 0
-    pos = [p0, v0]
-    pos_m = np.array(pos)
-    for i in range(n):
-        t[i+1] = t[i] + h
-        f = pendulum_func(pos, 0, A, B, K_m)[1]
-        pos[1] = pos[1] + h * f
-        pos[0] = pos[0] + h * pos[1]
-        pos_m = np.vstack((pos_m, pos))
-    # print(pos_m)
-    return pos_m
-
-
-test_sol = euler(test, math.pi-0.1, TM)
-
-#print(test_sol)
-print('size ishodn: ', np.shape(test_sol))
-n = test_sol.shape[0]
-m = 20
-# print('1st line', test_sol[0][0], '&', test_sol[0][1])
-# print('2nd line', test_sol[1][0], '&', test_sol[1][1])
-# print('3d  line', test_sol[2][0], '&', test_sol[2][1])
-
-for k in range(m):
-    test_sol = np.delete(test_sol, [k][0])
-test_sol = test_sol[m:]
-ntest_sol = np.reshape(test_sol, (n-m, 2))
-print(ntest_sol)
-print('size: ', np.shape(ntest_sol))
-
-
+TM2 = [0] * (1200-m)
+el_sol_del = euler(pendulum_func2, math.pi-0.1, TM2)
+print(el_sol_del)
 
 el_sol = euler(pendulum_func, math.pi-0.1, TM)
-#print(el_sol)
+
 t1 = np.linspace(0, 1200*1/240, 1200)
+t2 = np.linspace(m*1/240, (1200-m)*1/240, (1200-m))
 
 pylab.figure(1)
 pylab.grid()
-pylab.title("График симуляторного решения:")
+pylab.title("График решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
-pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
-pylab.plot(t1, el_sol[:, 0], color='r', label='euler')
+# pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
+pylab.plot(t1, el_sol[:, 0], color='g', label='euler')
 pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
+pylab.plot(t2, el_sol_del[:, 0], color='y', label='prediction DELAY euler +m steps')
+
 pylab.legend()
+
 '''
 pylab.figure(2)
 pylab.grid()
