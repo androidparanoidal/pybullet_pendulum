@@ -205,27 +205,8 @@ print("\n")
 '''
 
 
-def euler(func, q0, t):
-    N = np.size(t) - 1
-    h = 1/240
-    p0 = q0
-    v0 = 0
-    pos = [p0, v0]
-    pos_m = np.array(pos)
-    for i in range(N):
-        t[i+1] = t[i] + h
-        f = pendulum_func(pos, 0, A, B, K_m)[1]
-        pos[1] = pos[1] + h * f
-        pos[0] = pos[0] + h * pos[1]
-        pos_m = np.vstack((pos_m, pos))
-    # print(pos_m)
-    return pos_m
-
-
 m = 20  # шаг вперед
 u_b = [0 for j in range(m)]
-#Y_buff = [[0]*2]*1200
-
 Y_buff1 = np.array([])
 Y_buff2 = np.array([])
 
@@ -234,9 +215,9 @@ def pendulum_func(Y, t, A, B, K_m):
     global Y_buff1
     global Y_buff2
     Y = np.array(([Y[0]-math.pi], [Y[1]]))
-
-    Y_buff1 = copy.copy(Y[0])
-    Y_buff2 = copy.deepcopy(Y[1])
+    #print(Y)
+    Y_buff1 = np.append(Y_buff1, copy.deepcopy(Y[0]))
+    Y_buff2 = np.append(Y_buff2, copy.deepcopy(Y[1]))
 
     Upr = u_b[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
@@ -244,33 +225,66 @@ def pendulum_func(Y, t, A, B, K_m):
     u_b.pop(0)
     Upr_prev = (-1) * (K_m @ Y)
     u_b.append(Upr_prev)
-
     dy = dy.reshape(1, 2)
     dY_new = dy.tolist()
     return dY_new[0]
 
-print(Y_buff1)
-print('\n', Y_buff2)
 
-
-def test(X, t):
-    return np.array(([X[0]-math.pi], [X[1]]))
+def euler(func, q0, t):
+    N = np.size(t) - 1
+    h = 1/240
+    p0 = q0
+    v0 = 0
+    pos = [p0, v0]
+    pos_m = np.array(pos)
+    for i in range(N):
+        # t[i+1] = t[i] + h
+        f = pendulum_func(pos, 0, A, B, K_m)[1]
+        pos[1] = pos[1] + h * f
+        pos[0] = pos[0] + h * pos[1]
+        pos_m = np.vstack((pos_m, pos))
+    # print(pos_m)
+    return pos_m
 
 
 TM = [0] * T
+el_sol = euler(pendulum_func, math.pi-0.1, TM)
+
+'''
+def test(X, t): #usless
+    return np.array(([X[0]-math.pi], [X[1]]))
+
 test_sol = euler(test, math.pi-0.1, TM)
 n = test_sol.shape[0]
 
 for k in range(m):
     test_sol = np.delete(test_sol, [k][0])
 test_sol = test_sol[m:]
+# print(test_sol)
 test_sol = np.reshape(test_sol, (n-m, 2))
+'''
 
+# Y_buff = np.column_stack((Y_buff1, Y_buff2))
+Y_buff1 = Y_buff1[m:]
+Y_buff2 = Y_buff2[m:]
+Y_buff1 = Y_buff1.tolist()
+Y_buff2 = Y_buff2.tolist()
+Y_buff1.append(Y_buff1[-1])
+Y_buff2.append(Y_buff2[-1])
+p00 = Y_buff1[1]
+v00 = Y_buff2[1]
 
-def pendulum_func2(Y, A, B, K_m):
+'''
+yb1 = []
+yb2 = []
+
+def pendulum_func2(t, A, B, K_m): #usless
     global upr_pen_list
 
-    Y = np.array(([Y[0]-math.pi], [Y[1]]))
+    yb1 = Y_buff1[0]-math.pi
+    yb2 = Y_buff2[0]
+    Y = np.append(yb1, yb2)
+    Y = np.reshape(Y, (-1, 1))
 
     Upr = u_b[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
@@ -279,21 +293,69 @@ def pendulum_func2(Y, A, B, K_m):
     Upr_prev = (-1) * (K_m @ Y)
     u_b.append(Upr_prev)
 
+    Y_buff1.pop(0)
+    Y_buff2.pop(0)
+
     dy = dy.reshape(1, 2)
     dY_new = dy.tolist()
-    return dY_new
+    print(dY_new)
+    return dY_new[0]
+'''
+
+xb=[]
+
+def model3(X, t, A, B, K_m):
+    global upr_pen_list
+    # dY_new = [0*[2]]*2
+    X1 = np.array(([X[0] - math.pi], [X[1]]))
+    xb.append(X[0])
+
+    Upr = u_b[0]
+    upr_pen_list = np.append(upr_pen_list, Upr)
+    dy = np.matmul(A, X1) + (B * Upr)
+    u_b.pop(0)
+    Upr_prev = (-1) * (K_m @ X1)
+    u_b.append(Upr_prev)
+    dy = dy.reshape(1, 2)
+    dY_new = dy.tolist()
+
+    if len(xb) >= m:
+        print('dfsdgdpjgpijfhgijjofjgih')
+        X2 = np.array(([X[0] - math.pi], [X[1]]))
+        Upr = u_b[0]
+        upr_pen_list = np.append(upr_pen_list, Upr)
+        dy = np.matmul(A, X2) + (B * Upr)
+        u_b.pop(0)
+        Upr_prev = (-1) * (K_m @ X2)
+        u_b.append(Upr_prev)
+        dy = dy.reshape(1, 2)
+        dY_new = dy.tolist()
+        print(dY_new)
+    return dY_new[0]
+
+
+def euler2(t, func, q0):
+    N = np.size(t) - 1
+    h = 1/240
+    p0 = q0
+    v0 = 0
+    pos = [p0, v0]
+    # pos = [p00, v00]
+    pos_m = np.array(pos)
+    for i in range(N):
+        f = model3(pos, 0, A, B, K_m)[1]
+        pos[1] = pos[1] + h * f
+        pos[0] = pos[0] + h * pos[1]
+        pos_m = np.vstack((pos_m, pos))
+    print(np.shape(pos_m))
+    return pos_m
 
 
 TM2 = [0] * (1200-m)
-
-el_sol_del = euler(pendulum_func2, math.pi-0.1, TM2)
-print(el_sol_del)
-
-
-el_sol = euler(pendulum_func, math.pi-0.1, TM)
+eler_del = euler2(TM2, model3, math.pi-0.1)
 
 t1 = np.linspace(0, 1200*1/240, 1200)
-t2 = np.linspace(m*1/240, (1200-m)*1/240, (1200-m))
+t2 = np.linspace(m*1/240, 1200*1/240, (1200-m))
 
 pylab.figure(1)
 pylab.grid()
@@ -303,9 +365,7 @@ pylab.ylabel('x(t)', fontsize=12)
 # pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
 pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
 pylab.plot(t1, el_sol[:, 0], color='g', label='euler')
-
-pylab.plot(t2, el_sol_del[:, 0], color='y', label='prediction DELAY euler +m steps')
-
+pylab.plot(t2, eler_del[:, 0], color='y', label='prediction DELAY euler +m steps')
 pylab.legend()
 
 '''
