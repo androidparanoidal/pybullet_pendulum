@@ -4,6 +4,7 @@ import pylab
 import numpy as np
 import math
 import control.matlab
+import copy
 # import collections
 
 p.connect(p.DIRECT)
@@ -223,12 +224,20 @@ def euler(func, q0, t):
 
 m = 20  # шаг вперед
 u_b = [0 for j in range(m)]
+#Y_buff = [[0]*2]*1200
 
+Y_buff1 = np.array([])
+Y_buff2 = np.array([])
 
 def pendulum_func(Y, t, A, B, K_m):
-    Y = np.array(([Y[0]-math.pi],
-                  [Y[1]]))
     global upr_pen_list
+    global Y_buff1
+    global Y_buff2
+    Y = np.array(([Y[0]-math.pi], [Y[1]]))
+
+    Y_buff1 = copy.copy(Y[0])
+    Y_buff2 = copy.deepcopy(Y[1])
+
     Upr = u_b[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
     dy = np.matmul(A, Y) + (B * Upr)
@@ -239,6 +248,10 @@ def pendulum_func(Y, t, A, B, K_m):
     dy = dy.reshape(1, 2)
     dY_new = dy.tolist()
     return dY_new[0]
+
+print(Y_buff1)
+print('\n', Y_buff2)
+
 
 def test(X, t):
     return np.array(([X[0]-math.pi], [X[1]]))
@@ -254,9 +267,11 @@ test_sol = test_sol[m:]
 test_sol = np.reshape(test_sol, (n-m, 2))
 
 
-def pendulum_func2(Y, t, A, B, K_m):
-    Y = np.array(([Y[0]-math.pi], [Y[1]]))
+def pendulum_func2(Y, A, B, K_m):
     global upr_pen_list
+
+    Y = np.array(([Y[0]-math.pi], [Y[1]]))
+
     Upr = u_b[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
     dy = np.matmul(A, Y) + (B * Upr)
@@ -266,12 +281,14 @@ def pendulum_func2(Y, t, A, B, K_m):
 
     dy = dy.reshape(1, 2)
     dY_new = dy.tolist()
-    return dY_new[0]
+    return dY_new
 
 
 TM2 = [0] * (1200-m)
+
 el_sol_del = euler(pendulum_func2, math.pi-0.1, TM2)
 print(el_sol_del)
+
 
 el_sol = euler(pendulum_func, math.pi-0.1, TM)
 
@@ -284,8 +301,9 @@ pylab.title("График решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
 # pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
-pylab.plot(t1, el_sol[:, 0], color='g', label='euler')
 pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
+pylab.plot(t1, el_sol[:, 0], color='g', label='euler')
+
 pylab.plot(t2, el_sol_del[:, 0], color='y', label='prediction DELAY euler +m steps')
 
 pylab.legend()
