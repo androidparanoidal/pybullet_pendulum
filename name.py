@@ -302,36 +302,33 @@ def pendulum_func2(t, A, B, K_m): #usless
     return dY_new[0]
 '''
 
-xb=[]
+xb = []
+u_b3 = [0 for p in range(m)]
 
 def model3(X, t, A, B, K_m):
     global upr_pen_list
-    # dY_new = [0*[2]]*2
     X1 = np.array(([X[0] - math.pi], [X[1]]))
     xb.append(X[0])
 
-    Upr = u_b[0]
+    Upr = u_b3[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
     dy = np.matmul(A, X1) + (B * Upr)
-    u_b.pop(0)
+    u_b3.pop(0)
     Upr_prev = (-1) * (K_m @ X1)
-    u_b.append(Upr_prev)
+    u_b3.append(Upr_prev)
     dy = dy.reshape(1, 2)
     dY_new = dy.tolist()
 
-
     if len(xb) >= m:
-        print('dfsdgdpjgpijfhgijjofjgih')
         X2 = np.array(([X[0] - math.pi], [X[1]]))
-        Upr = u_b[0]
+        Upr = u_b3[0]
         upr_pen_list = np.append(upr_pen_list, Upr)
         dy = np.matmul(A, X2) + (B * Upr)
-        u_b.pop(0)
+        u_b3.pop(0)
         Upr_prev = (-1) * (K_m @ X2)
-        u_b.append(Upr_prev)
+        u_b3.append(Upr_prev)
         dy = dy.reshape(1, 2)
         dY_new = dy.tolist()
-        print(dY_new)
     return dY_new[0]
 
 
@@ -348,12 +345,77 @@ def euler2(t, func, q0):
         pos[1] = pos[1] + h * f
         pos[0] = pos[0] + h * pos[1]
         pos_m = np.vstack((pos_m, pos))
-    print(np.shape(pos_m))
+    # print(np.shape(pos_m))
     return pos_m
 
 
 TM2 = [0] * (1200-m)
 eler_del = euler2(TM2, model3, math.pi-0.1)
+
+xb2 = []
+u_b2 = [0 for i in range(m)]
+el = []
+
+def model_nonlin(X, t, B, poles, c1, c2):
+    global upr_pen_list
+    X1 = np.array(([X[0]-math.pi], [X[1]]))
+
+    elem = (np.sin(X1[0])).tolist()  # el2 = math.sin(X1[0][0])
+    # print(elem)
+    A = np.array(([0.0, 1.0], [c2 * elem[0], -c1]))
+    K_c = control.matlab.place(A, B, poles)
+    Km = (np.asarray(K_c)).flatten()
+    elem.pop(0)
+
+    xb2.append(X1[0])
+    Upr = u_b2[0]
+    # print(Upr)
+    upr_pen_list = np.append(upr_pen_list, Upr)
+    dy = np.matmul(A, X1) + (B * Upr)
+    u_b2.pop(0)
+    Upr_prev = (-1) * (Km @ X1)
+    u_b2.append(Upr_prev)
+    dy = dy.reshape(1, 2)
+    dY_new = dy.tolist()
+
+    if len(xb2) >= m:
+        X2 = np.array(([X[0] - math.pi], [X[1]]))
+        elem = (np.sin(X2[0])).tolist()
+        A = np.array(([0.0, 1.0], [c2 * elem[0], -c1]))
+        K_c = control.matlab.place(A, B, poles)
+        Km = (np.asarray(K_c)).flatten()
+        elem.pop(0)
+
+        Upr = u_b2[0]
+        upr_pen_list = np.append(upr_pen_list, Upr)
+        dy = np.matmul(A, X2) + (B * Upr)
+        u_b2.pop(0)
+        Upr_prev = (-1) * (Km @ X2)
+        u_b2.append(Upr_prev)
+        dy = dy.reshape(1, 2)
+        dY_new = dy.tolist()
+
+    return dY_new[0]
+
+
+def eulernonlin(t, func, q0):
+    N = np.size(t) - 1
+    h = 1/240
+    p0 = q0
+    v0 = 0
+    pos = [p0, v0]
+    pos_m = np.array(pos)
+    for i in range(N):
+        f = model_nonlin(pos, 0, B, poles, c1, c2)[1]
+        pos[1] = pos[1] + h * f
+        pos[0] = pos[0] + h * pos[1]
+        pos_m = np.vstack((pos_m, pos))
+    # print(np.shape(pos_m))
+    return pos_m
+
+
+eulnonlin = eulernonlin(TM2, model_nonlin, math.pi-0.1)
+
 
 t1 = np.linspace(0, 1200*1/240, 1200)
 t2 = np.linspace(m*1/240, 1200*1/240, (1200-m))
@@ -363,10 +425,11 @@ pylab.grid()
 pylab.title("График решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
-# pylab.plot(time_list, np.array(ssol_delay), color='c', label='sim delay')
+pylab.plot(time_list, np.array(ssol_delay), color='r', linestyle=':', label='sim delay')
 pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
 pylab.plot(t1, el_sol[:, 0], color='g', label='euler')
 pylab.plot(t2, eler_del[:, 0], color='y', label='prediction DELAY euler +m steps')
+pylab.plot(t2, eulnonlin[:, 0], color='c', label='prediction DELAY euler +m steps nonlin')
 pylab.legend()
 
 '''
