@@ -4,7 +4,7 @@ import pylab
 import numpy as np
 import math
 import control.matlab
-import copy
+# import copy
 # import collections
 
 p.connect(p.DIRECT)
@@ -19,13 +19,14 @@ p.changeDynamics(boxId, 2, linearDamping=0, angularDamping=0)
 
 dt = 1/240
 b = 1
-m = 2
+mass = 2
 length = 0.8
 g = 9.81
-c1 = b / (m * length ** 2)
+c1 = b / (mass * length ** 2)
 c2 = g / length
-c3 = 1 / (m * length ** 2)
+c3 = 1 / (mass * length ** 2)
 T = int(5 / dt)
+m = 20  # шаг вперед
 
 time_list = [0]*T
 position_list = [0]*T
@@ -37,17 +38,10 @@ w_list2 = []
 upr_s2_list = np.array([])
 upr_s_list = np.array([])
 upr_pen_list = np.array([])
+upr_pen1_list = np.array([])
+upr_pen2_list = np.array([])
 
-# u_buff = collections.deque([0 for j in range(10)])
 u_buff = []
-
-'''
-a_list = collections.deque([1, 2, 3, 4, 5])
-a_list.rotate(2)
-shifted_list = list(a_list)
-print(shifted_list)
-'''
-
 
 A = np.array(([0.0, 1.0], [c2, -c1]))
 B = np.array(([0.0], [c3]))
@@ -56,7 +50,6 @@ K = control.matlab.place(A, B, poles)
 C = A - np.dot(B, K)
 sch, sv = np.linalg.eig(C)
 K_m = (np.asarray(K)).flatten()
-
 '''
 print('\nК: ', K)
 print('Ранг матрицы А = ', np.linalg.matrix_rank(A))
@@ -85,7 +78,7 @@ def sim_sol_delay(q0, K_m):
 
     position_list = [0]*T
     jointpos_prev = q0
-    u_buff = [0 for j in range(20)]
+    u_buff = [0 for j in range(m)]
 
     for i in range(0, T):
         global upr_s_list
@@ -122,7 +115,7 @@ def sim_sol_delay(q0, K_m):
     return position_list
 
 
-# Симуляторное решение
+# Симуляторное решение простое без всего
 def sim_sol(q0, K_m):
     t = 0
     dt = 1 / 240
@@ -170,235 +163,70 @@ def sim_sol(q0, K_m):
 ssol_delay = sim_sol_delay(math.pi-0.1, K)
 ssol = sim_sol(math.pi-0.1, K)
 
-'''
-print('test:')
-vect = np.array(([2], [-1]))
-print(vect[0][0], '&', vect[1][0])
-buff = [1, 2, 3, 4, 5]
-print('исходный \n', vect)
-vect = np.delete(vect, 0)
-chvec = np.insert(vect, 0, buff[4], axis=0)
-chvec = np.delete(chvec, 1)
-chvec = np.insert(chvec, 1, buff[3], axis=0)
-print('измененный ', chvec)
-print('result:')
-newvec = np.reshape(chvec, (-1, 1))
-print(newvec)
-'''
-
-'''
-print('\ntest2:')
-matr = np.array(([1, 2],[3, 4],[5, 6],[7, 8],[9, 0],[5, 1],[2, 3]))
-print('исходная: ', matr)
-print(np.shape(matr), '& column shape =', matr.shape[0])
-nn = matr.shape[0]
-mm = 4
-for l in range(mm):
-    matr = np.delete(matr, [l][0])
-print('itog1 =', matr, 'size = ', np.shape(matr))
-matr = matr[mm:]
-print('itog2 =', matr)
-newmatr = np.reshape(matr, (nn-mm, 2))
-print('result:', newmatr)
-print('size: ', np.shape(newmatr))
-print("\n")
-'''
-
-
-m = 20  # шаг вперед
-u_b = [0 for j in range(m)]
-Y_buff1 = np.array([])
-Y_buff2 = np.array([])
-
-def pendulum_func(Y, t, A, B, K_m):
-    global upr_pen_list
-    global Y_buff1
-    global Y_buff2
-    Y = np.array(([Y[0]-math.pi], [Y[1]]))
-    #print(Y)
-    Y_buff1 = np.append(Y_buff1, copy.deepcopy(Y[0]))
-    Y_buff2 = np.append(Y_buff2, copy.deepcopy(Y[1]))
-
-    Upr = u_b[0]
-    upr_pen_list = np.append(upr_pen_list, Upr)
-    dy = np.matmul(A, Y) + (B * Upr)
-    u_b.pop(0)
-    Upr_prev = (-1) * (K_m @ Y)
-    u_b.append(Upr_prev)
-    dy = dy.reshape(1, 2)
-    dY_new = dy.tolist()
-    return dY_new[0]
-
-
-def euler(func, q0, t):
-    N = np.size(t) - 1
-    h = 1/240
-    p0 = q0
-    v0 = 0
-    pos = [p0, v0]
-    pos_m = np.array(pos)
-    for i in range(N):
-        # t[i+1] = t[i] + h
-        f = pendulum_func(pos, 0, A, B, K_m)[1]
-        pos[1] = pos[1] + h * f
-        pos[0] = pos[0] + h * pos[1]
-        pos_m = np.vstack((pos_m, pos))
-    # print(pos_m)
-    return pos_m
-
 
 TM = [0] * T
-el_sol = euler(pendulum_func, math.pi-0.1, TM)
-
-'''
-def test(X, t): #usless
-    return np.array(([X[0]-math.pi], [X[1]]))
-
-test_sol = euler(test, math.pi-0.1, TM)
-n = test_sol.shape[0]
-
-for k in range(m):
-    test_sol = np.delete(test_sol, [k][0])
-test_sol = test_sol[m:]
-# print(test_sol)
-test_sol = np.reshape(test_sol, (n-m, 2))
-'''
-
-# Y_buff = np.column_stack((Y_buff1, Y_buff2))
-Y_buff1 = Y_buff1[m:]
-Y_buff2 = Y_buff2[m:]
-Y_buff1 = Y_buff1.tolist()
-Y_buff2 = Y_buff2.tolist()
-Y_buff1.append(Y_buff1[-1])
-Y_buff2.append(Y_buff2[-1])
-p00 = Y_buff1[1]
-v00 = Y_buff2[1]
-
-'''
-yb1 = []
-yb2 = []
-
-def pendulum_func2(t, A, B, K_m): #usless
+u_b = [0 for j in range(m)]
+# Линейная модель с запаздыванием и прогнозом
+def pendulum_func(Y, t, K_m):
     global upr_pen_list
-
-    yb1 = Y_buff1[0]-math.pi
-    yb2 = Y_buff2[0]
-    Y = np.append(yb1, yb2)
-    Y = np.reshape(Y, (-1, 1))
-
+    Y = np.array(([Y[0]-math.pi], [Y[1]]))
     Upr = u_b[0]
     upr_pen_list = np.append(upr_pen_list, Upr)
     dy = np.matmul(A, Y) + (B * Upr)
     u_b.pop(0)
     Upr_prev = (-1) * (K_m @ Y)
     u_b.append(Upr_prev)
-
-    Y_buff1.pop(0)
-    Y_buff2.pop(0)
-
     dy = dy.reshape(1, 2)
     dY_new = dy.tolist()
-    print(dY_new)
-    return dY_new[0]
-'''
-
-xb = []
-u_b3 = [0 for p in range(m)]
-
-def model3(X, t, A, B, K_m):
-    global upr_pen_list
-    X1 = np.array(([X[0] - math.pi], [X[1]]))
-    xb.append(X[0])
-
-    Upr = u_b3[0]
-    upr_pen_list = np.append(upr_pen_list, Upr)
-    dy = np.matmul(A, X1) + (B * Upr)
-    u_b3.pop(0)
-    Upr_prev = (-1) * (K_m @ X1)
-    u_b3.append(Upr_prev)
-    dy = dy.reshape(1, 2)
-    dY_new = dy.tolist()
-
-    if len(xb) >= m:
-        X2 = np.array(([X[0] - math.pi], [X[1]]))
-        Upr = u_b3[0]
-        upr_pen_list = np.append(upr_pen_list, Upr)
-        dy = np.matmul(A, X2) + (B * Upr)
-        u_b3.pop(0)
-        Upr_prev = (-1) * (K_m @ X2)
-        u_b3.append(Upr_prev)
-        dy = dy.reshape(1, 2)
-        dY_new = dy.tolist()
     return dY_new[0]
 
 
-def euler2(t, func, q0):
-    N = np.size(t) - 1
-    h = 1/240
-    p0 = q0
-    v0 = 0
-    pos = [p0, v0]
-    # pos = [p00, v00]
-    pos_m = np.array(pos)
-    for i in range(N):
-        f = model3(pos, 0, A, B, K_m)[1]
-        pos[1] = pos[1] + h * f
-        pos[0] = pos[0] + h * pos[1]
-        pos_m = np.vstack((pos_m, pos))
-    # print(np.shape(pos_m))
-    return pos_m
+def func_pred(Y, t):
+    Y = np.array(([Y[0]-math.pi], [Y[1]]))
+    Upr = u_b[0]
+    dy = np.matmul(A, Y) + (B * Upr)
+    u_b.pop(0)
+    Upr_prev = (-1) * (K_m @ Y)
+    u_b.append(Upr_prev)
+    dy = dy.reshape(1, 2)
+    dY_new = dy.tolist()
+    return dY_new[0]
 
 
-TM2 = [0] * (1200-m)
-eler_del = euler2(TM2, model3, math.pi-0.1)
-
-xb2 = []
-u_b2 = [0 for i in range(m)]
-el = []
-
-def model_nonlin(X, t, B, poles, c1, c2):
-    global upr_pen_list
-    X1 = np.array(([X[0]-math.pi], [X[1]]))
-
-    elem = (np.sin(X1[0])).tolist()  # el2 = math.sin(X1[0][0])
-    # print(elem)
-    A = np.array(([0.0, 1.0], [c2 * elem[0], -c1]))
-    K_c = control.matlab.place(A, B, poles)
-    Km = (np.asarray(K_c)).flatten()
-    elem.pop(0)
-
-    xb2.append(X1[0])
+u_b2 = [0 for f in range(m)]
+# Нелинейная модель с запаздыванием и прогнозом
+def pen_func_nonlin(Y, t, K_m):
+    global upr_pen2_list
+    Y = np.array(([Y[0]-math.pi], [Y[1]]))
+    el1 = (Y[1]).tolist()
+    el2 = (np.sin(Y[0])).tolist()
+    Ax = np.array(([el1[0]], [-c2 * el2[0] - c1 * el1[0]]))
     Upr = u_b2[0]
-    # print(Upr)
-    upr_pen_list = np.append(upr_pen_list, Upr)
-    dy = np.matmul(A, X1) + (B * Upr)
+    upr_pen2_list = np.append(upr_pen2_list, Upr)
+    dy = Ax + (B * Upr)
     u_b2.pop(0)
-    Upr_prev = (-1) * (Km @ X1)
+    Upr_prev = (-1) * (K_m @ Y)
     u_b2.append(Upr_prev)
     dy = dy.reshape(1, 2)
     dY_new = dy.tolist()
+    return dY_new[0]
 
-    if len(xb2) >= m:
-        X2 = np.array(([X[0] - math.pi], [X[1]]))
-        elem = (np.sin(X2[0])).tolist()
-        A = np.array(([0.0, 1.0], [c2 * elem[0], -c1]))
-        K_c = control.matlab.place(A, B, poles)
-        Km = (np.asarray(K_c)).flatten()
-        elem.pop(0)
-
-        Upr = u_b2[0]
-        upr_pen_list = np.append(upr_pen_list, Upr)
-        dy = np.matmul(A, X2) + (B * Upr)
-        u_b2.pop(0)
-        Upr_prev = (-1) * (Km @ X2)
-        u_b2.append(Upr_prev)
-        dy = dy.reshape(1, 2)
-        dY_new = dy.tolist()
-
+def func_pred2(Y, t):
+    Y = np.array(([Y[0] - math.pi], [Y[1]]))
+    el1 = (Y[1]).tolist()
+    el2 = (np.sin(Y[0])).tolist()
+    Ax = np.array(([el1[0]], [-c2 * el2[0] - c1 * el1[0]]))
+    Upr = u_b2[0]
+    dy = Ax + (B * Upr)
+    u_b2.pop(0)
+    Upr_prev = (-1) * (K_m @ Y)
+    u_b2.append(Upr_prev)
+    dy = dy.reshape(1, 2)
+    dY_new = dy.tolist()
     return dY_new[0]
 
 
-def eulernonlin(t, func, q0):
+def euler(t, func, func2, q0):
     N = np.size(t) - 1
     h = 1/240
     p0 = q0
@@ -406,30 +234,51 @@ def eulernonlin(t, func, q0):
     pos = [p0, v0]
     pos_m = np.array(pos)
     for i in range(N):
-        f = model_nonlin(pos, 0, B, poles, c1, c2)[1]
+        f = func(pos, 0, K_m)[1]
+        f2 = func2(pos, 0)[1]
         pos[1] = pos[1] + h * f
         pos[0] = pos[0] + h * pos[1]
         pos_m = np.vstack((pos_m, pos))
-    # print(np.shape(pos_m))
+        # torq = (-1) * (K_m[0]*pos_m[0] + K_m[1]*pos_m[1])
     return pos_m
 
 
-eulnonlin = eulernonlin(TM2, model_nonlin, math.pi-0.1)
+el_sol = euler(TM, pendulum_func, func_pred, math.pi-0.1)
+el_nonlin = euler(TM, pen_func_nonlin, func_pred2, math.pi-0.1)
 
+
+def euler_simple(t, func, q0):
+    N = np.size(t) - 1
+    h = 1 / 240
+    p0 = q0
+    v0 = 0
+    pos = [p0, v0]
+    pos_m = np.array(pos)
+    for i in range(N):
+        f2 = pendulum_func(pos, 0, K_m)[1]
+        pos[1] = pos[1] + h * f2
+        pos[0] = pos[0] + h * pos[1]
+        pos_m = np.vstack((pos_m, pos))
+    return pos_m
+el_sol2 = euler_simple(TM, pendulum_func, math.pi-0.1)
 
 t1 = np.linspace(0, 1200*1/240, 1200)
-t2 = np.linspace(m*1/240, 1200*1/240, (1200-m))
+t3 = np.linspace(m*1/240, 1200*1/240+(m*1/250), 1200)
+t4 = np.linspace(m*1/240, 2*m*1/240)
+st = [3.04 for l in range(50)]
 
 pylab.figure(1)
 pylab.grid()
 pylab.title("График решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
-pylab.plot(time_list, np.array(ssol_delay), color='r', linestyle=':', label='sim delay')
-pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim')
-pylab.plot(t1, el_sol[:, 0], color='g', label='euler')
-pylab.plot(t2, eler_del[:, 0], color='y', label='prediction DELAY euler +m steps')
-pylab.plot(t2, eulnonlin[:, 0], color='c', label='prediction DELAY euler +m steps nonlin')
+pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim без всего')
+pylab.plot(time_list, np.array(ssol_delay), color='r', linestyle=':', label='sim with U buff (такой же как и темнозеленый)')
+pylab.plot(t1, el_sol2[:, 0], color='g', label='euler with U buff')
+pylab.plot(t3, el_sol[:, 0], color='c', label='lin with delay & prediction')
+pylab.plot(t3, el_nonlin[:, 0], color='y', label='NONlin with delay & prediction')
+
+# pylab.plot(t4, st, color='k')
 pylab.legend()
 
 '''
@@ -442,6 +291,8 @@ pylab.plot(time_list, w_list, color='c', label='sim delay')
 pylab.plot(time_list, w_list2, color='k', linestyle=':', label='sim')
 pylab.legend()
 
+t4 = np.linspace(0, 1200*1/240, 1199)
+
 pylab.figure(3)
 pylab.grid()
 pylab.title("График управления:")
@@ -449,6 +300,8 @@ pylab.xlabel('t', fontsize=12)
 pylab.ylabel('u', fontsize=12)
 pylab.plot(time_list, upr_s_list, color='c', label='sim delay')
 pylab.plot(time_list, upr_s2_list, color='k', linestyle=':', label='sim')
+pylab.plot(t4, upr_pen_list[:np.size(upr_pen_list)/2], color='b', label='euler')
+pylab.plot(t4, upr_pen_list[np.size(upr_pen_list)/2:], color='g', label='euler')
 pylab.legend()
 '''
 pylab.show()
