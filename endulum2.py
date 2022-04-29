@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
-p.connect(p.GUI)
+p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.resetSimulation()
 p.setGravity(0, 0, -9.81)
@@ -18,9 +18,9 @@ t = 0
 dt = 1/240  # simulation step
 q0 = 0        # starting position
 q1_desirable = 0.5
-kp = 3
-ki = 100
-kd = 2
+kp = 10
+ki = 10
+kd = 8
 position_list = []
 time_list = []
 int_error = 0
@@ -43,7 +43,7 @@ def func(t, int_error, diff_error, q1_desirable, q0, kp, ki, kd):
         position_list.append(q1_current)
 
         error = q1_desirable - q1_current
-        diff_error += (error - prev_error)/dt
+        diff_error = (error - prev_error)/dt
         prev_error = error
 
         int_error += error * dt
@@ -52,7 +52,6 @@ def func(t, int_error, diff_error, q1_desirable, q0, kp, ki, kd):
         p.stepSimulation()
         time_list.append(t)
         t += dt
-
 
     return position_list, time_list
 
@@ -63,7 +62,7 @@ print(position_list)
 print(time_list, '\n')
 
 t_q = np.linspace(0, 10)
-q_d = np.full(50, 0.5)
+q_d = np.full(50, q1_desirable)
 
 plt.figure()
 plt.grid(True)

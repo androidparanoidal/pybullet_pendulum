@@ -56,7 +56,7 @@ length = 0.8
 g = 9.81
 koef1 = g/length   # = 12.2625
 koef2 = b/(m * length**2)  # = 1.5625
-q0_initial = [q0, 0]  # нач знач: x(t=0) = 1, x'(t=0) = 0
+q0_initial = [q0, 0]  # нач знач: x(t=0) = q0, x'(t=0) = 0
 
 # d^2x/dt^2 +  b/(m*l*l) * dx/dt + g/l * sinx = 0, где пусть
 def odesol(X, t, b, m, length, g):
@@ -117,20 +117,20 @@ def L2_norm_2(u, position_list):
     distance2 = np.sqrt(abs((np.array(u) - np.array(position_list)) ** 2))
     return distance2
 
-'''
+
 print('\nМодули разности между odeint и симуляторным решением: ', L2_norm_1(xs, position_list),
       '\nНорма L2 = ', np.mean(L2_norm_1(xs, position_list)), '\n')
 print('\nМодули разности между м эйлера и симуляторным решением: ', L2_norm_2(u, position_list),
       '\nНорма L2 = ', np.mean(L2_norm_2(u, position_list)), '\n')
-'''
+
 
 plt.figure()
 plt.grid(True)
 plt.xlabel('t', fontsize=12)
-plt.ylabel('x(t)', fontsize=12)
-plt.plot(t, solution[:, 0], color='k', label='odeint', linestyle=':', linewidth=2)
-plt.plot(t1, u, color='r', label='эйлер')
-plt.plot(time_list, position_list, color='c', label='симуляторное')
+plt.ylabel('θ(t)', fontsize=12)
+plt.plot(t, solution[:, 0], color='k', label='Решение с помощью модуля OdeInt', linestyle=':', linewidth=2)
+plt.plot(t1, u, color='r', label='Решение полу-неявным методом Эйлера', linewidth=2)
+plt.plot(time_list, position_list, color='b', label='Симуляторное решение', linewidth=1)
 plt.legend(loc='best')
 plt.title('Сравнение симуляторного и численных решений:')
 '''okr1 = round(np.mean(L2_norm_2(u, position_list)), 7)

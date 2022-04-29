@@ -87,14 +87,14 @@ def sim_solution(q0, K):
         p.stepSimulation()
         time_list.append(t)
         t += dt
-    print(position_list)
-    print(w_list)
-    print(upr_s_list)
+    #print(position_list)
+    #print(w_list)
+    #print(upr_s_list)
     return position_list
 
 #simsol1 = sim_solution(0.5, c1, c2, c3)
 #simsol2 = sim_solution((math.pi)/2, c1, c2, c3)
-simsol3 = sim_solution(math.pi-0.1, K)
+simsol3 = sim_solution(math.pi-0.5, K)
 # print('sim', simsol3)
 
 
@@ -127,24 +127,18 @@ def model_2(X, t, c1, c2, c3):
     poles = np.array(([-50], [-20]))
     K = control.matlab.place(A, B, poles)
     C = A - np.dot(B, K)
-
     X = np.array([X[0], X[1]])
-    # print(X)
     U = (-1) * np.array(K @ X)
     global upr_m2_list
     upr_m2_list = np.append(upr_m2_list, U)
-
     rhs = np.matmul(C, X)
     rhs = rhs.reshape(1, 2)
     dX_new = rhs.tolist()
-
     return dX_new[0]
 
 
-m_solution = odeint(model_2, [(math.pi), 0], t, args=(c1, c2, c3))
+m_solution = odeint(model_2, [0.5, 0], t, args=(c1, c2, c3))
 # print(m_solution[:, 0])
-# print(len(m_solution[:, 0]))
-# print(len(upr_m_list))
 
 
 # Решение матричного уравнения с заменой dy/dt = A*y + B*u, y = [x-pi, dx]
@@ -155,19 +149,16 @@ def model_3(Y, t, c1, c2, c3):
     K = control.matlab.place(A, B, poles)
     C = A - np.dot(B, K)
     Y = np.array([Y[0]-math.pi, Y[1]])
-    # print(Y)
     U = (-1) * np.array(K @ Y)
     global upr_m_list
     upr_m_list = np.append(upr_m_list, U)
-
     rhs = np.matmul(C, Y)
     rhs = rhs.reshape(1, 2)
     dX_new = rhs.tolist()
-
     return dX_new[0]
 
 
-m2_solution = odeint(model_3, [math.pi-0.1, 0], t, args=(c1, c2, c3))
+m2_solution = odeint(model_3, [math.pi-0.5, 0], t, args=(c1, c2, c3))
 
 
 
@@ -182,12 +173,13 @@ pylab.ylabel('x(t)', fontsize=12)
 #pylab.plot(t, simsol2, color='g', label='Симуляторное при q0 = pi/2')
 #pylab.plot(t, solution2[:, 0], color='k', label='Линейная система при q0 = pi/2', linestyle=':')
 #pylab.plot(t, solution3[:, 0], color='r', label='Линейная система при q0 = pi', linestyle=':')
-pylab.plot(t, np.array(simsol3), color=color1, label='Симуляторное при q0 = 0.1')
-pylab.plot(t, m_solution[:, 0], color='k', label='Решение матричного уравнения')
-pylab.plot(t, m2_solution[:, 0], color='c', label='Решение матричного уравнения 2')
+
+#pylab.plot(t, m_solution[:, 0], color='c', label='Численное решение')  #нижнее положение равновесия
+pylab.plot(t, m2_solution[:, 0], color='c', label='Численное решение')  #верхнее положение равновесия
+pylab.plot(t, np.array(simsol3), color='k', label='Решение симулятора', linestyle=':', linewidth=2)
 pylab.legend()
 
-
+'''
 pylab.figure(2)
 pylab.grid()
 pylab.title("Графики угловой скорости:")
@@ -209,7 +201,7 @@ pylab.ylabel('u', fontsize=12)
 # pylab.plot(t1, upr_m_list, color='k', label='Управление для матричной системы')
 pylab.plot(t, upr_s_list, color=color1, label='Управление для симуляторного решения')
 pylab.legend()
-
+'''
 
 '''
 pylab.figure(4)  # наверное можно циклом нарисовать..........
