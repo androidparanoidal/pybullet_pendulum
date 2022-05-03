@@ -13,6 +13,7 @@ c2 = g / length
 c3 = 1 / (mass * length ** 2)
 T = int(5 / dt)
 TM = [0] * T
+h = 1 / 240
 m = 20
 pi = math.pi
 
@@ -24,6 +25,7 @@ K_m = (np.asarray(K)).flatten()
 
 u_b = [0 for j in range(m)]
 
+
 def rp_nonlin(x, tau):
     x = np.array(([x[0]], [x[1]]))
     el1 = (x[1]).tolist()
@@ -32,46 +34,69 @@ def rp_nonlin(x, tau):
     dx = Ax + (B * tau)
     dx = dx.reshape(1, 2)
     dx_n = dx.tolist()
+    # print('dx', dx_n)
     return dx_n[0]
 
 
+def euler_step(x0, buff):
+    p0 = x0[0]
+    v0 = x0[1]
+    pos = [p0, v0]
+    f2 = rp_nonlin(pos, buff)[1]
+    pos[1] = pos[1] + h * f2
+    pos[0] = pos[0] + h * pos[1]
+    pos_m = [pos[0], pos[1]]
+    return pos_m
+
+
 def prediction(x, u_b):
-    y = rp_nonlin(x, u_b)
-    # print(y)
-    return y[0]
+    buf = u_b
+    #print('v redict', x)
+    for i in range(len(buf)-1):
+        x = euler_step(x, buf[i])
+        #print('x', x)
+    return x
 
 
-def euler(t, func, x0):
+
+def euler(t, x0):
     N = np.size(t) - 1
-    h = 1 / 240
     p0 = x0
     v0 = 0
     x = [p0, v0]
     x_m = np.array([x])
     # tau_0 = (-1) * K_m @ x_m
-
     for i in range(N):
-        x_b = x_m[-1]
+        x_b = x_m[-1]  # штучка для вычисления без прогноза
         tau = u_b[0]
-        dx = func(x, tau)[1]
+        dx = rp_nonlin(x, tau)[1]
         u_b.pop(0)
         x[1] = x[1] + h * dx
         x[0] = x[0] + h * x[1]
         x_m = np.vstack((x_m, x))
-        #c = prediction(x_m, u_b)[-1]
-        #print(c)
-        tau_prev = (-1) * (K_m[0] * (x_b[0] - pi) + K_m[1] * x_b[1])   #  #(K_m @ c)
+
+        x_mm = x_m[-1]
+        print('u_b: ', u_b)
+        c = prediction(x_mm, u_b)
+        print('c', c)
+
+        tau_prev = (-1) * (K_m[0] * (c[0] - pi) + K_m[1] * c[1])  # Прогноз (K_m @ c)
+
+        # tau_prev = (-1) * (K_m[0] * (x_b[0] - pi) + K_m[1] * x_b[1])  # Без прогноза
         u_b.append(tau_prev)
     return x_m
 
 
 x_start = math.pi-0.1
-solution = euler(TM, rp_nonlin, x_start)
-print(solution)
+solution = euler(TM, x_start)
+# print(solution)
 
 t1 = np.linspace(0, 1200*1/240, 1200)
 t3 = np.linspace(m*1/240, 1200*1/240+(m*1/250), 1200)
 xx0 = 0.1
+
+t4 = np.linspace(m*1/240, 2*m*1/240)
+st = [3.04 for l in range(50)]
 
 pylab.figure(1)
 pylab.grid()
@@ -79,5 +104,8 @@ pylab.title("График решения:")
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
 pylab.plot(t1, solution[:, 0], color='b', label='Нелинейная система для x0 = π - {}'.format(xx0))
+
+# pylab.plot(t4, st, color='k')
+
 pylab.legend()
 pylab.show()
