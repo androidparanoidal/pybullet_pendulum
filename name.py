@@ -181,17 +181,6 @@ def pendulum_func(Y, t, K_m):
     return dY_new[0]
 
 
-def func_pred(Y, t):
-    Y = np.array(([Y[0]-math.pi], [Y[1]]))
-    Upr = u_b[0]
-    dy = np.matmul(A, Y) + (B * Upr)
-    u_b.pop(0)
-    Upr_prev = (-1) * (K_m @ Y)
-    u_b.append(Upr_prev)
-    dy = dy.reshape(1, 2)
-    dY_new = dy.tolist()
-    return dY_new[0]
-
 
 u_b2 = [0 for f in range(m)]
 # Нелинейная модель с запаздыванием и прогнозом
@@ -211,22 +200,8 @@ def pen_func_nonlin(Y, t, K_m):
     dY_new = dy.tolist()
     return dY_new[0]
 
-def func_pred2(Y, t):
-    Y = np.array(([Y[0] - math.pi], [Y[1]]))
-    el1 = (Y[1]).tolist()
-    el2 = (np.sin(Y[0])).tolist()
-    Ax = np.array(([el1[0]], [-c2 * el2[0] - c1 * el1[0]]))
-    Upr = u_b2[0]
-    dy = Ax + (B * Upr)
-    u_b2.pop(0)
-    Upr_prev = (-1) * (K_m @ Y)
-    u_b2.append(Upr_prev)
-    dy = dy.reshape(1, 2)
-    dY_new = dy.tolist()
-    return dY_new[0]
 
-
-def euler(t, func, func2, q0):
+def euler(t, func, q0):
     N = np.size(t) - 1
     h = 1/240
     p0 = q0
@@ -235,7 +210,6 @@ def euler(t, func, func2, q0):
     pos_m = np.array(pos)
     for i in range(N):
         f = func(pos, 0, K_m)[1]
-        f2 = func2(pos, 0)[1]
         pos[1] = pos[1] + h * f
         pos[0] = pos[0] + h * pos[1]
         pos_m = np.vstack((pos_m, pos))
@@ -243,8 +217,8 @@ def euler(t, func, func2, q0):
     return pos_m
 
 
-el_sol = euler(TM, pendulum_func, func_pred, math.pi-0.1)
-el_nonlin = euler(TM, pen_func_nonlin, func_pred2, math.pi-0.1)
+el_sol = euler(TM, pendulum_func, math.pi-0.1)
+el_nonlin = euler(TM, pen_func_nonlin, math.pi-0.1)
 
 
 def euler_simple(t, func, q0):
@@ -275,8 +249,8 @@ pylab.ylabel('x(t)', fontsize=12)
 pylab.plot(time_list, np.array(ssol), color='k', linestyle=':', label='sim без всего')
 pylab.plot(time_list, np.array(ssol_delay), color='r', linestyle=':', label='sim with U buff (такой же как и темнозеленый)')
 pylab.plot(t1, el_sol2[:, 0], color='g', label='euler with U buff')
-pylab.plot(t3, el_sol[:, 0], color='c', label='lin with delay & prediction')
-pylab.plot(t3, el_nonlin[:, 0], color='y', label='NONlin with delay & prediction')
+pylab.plot(t3, el_sol[:, 0], color='c', label='lin with delay')
+pylab.plot(t3, el_nonlin[:, 0], color='y', label='NONlin with delay')
 
 # pylab.plot(t4, st, color='k')
 pylab.legend()
