@@ -62,7 +62,6 @@ def prediction(x, u_b, func):
     return x
 
 
-
 def euler(t, func, x0):
     N = np.size(t) - 1
     p0 = x0
@@ -79,10 +78,10 @@ def euler(t, func, x0):
         x[0] = x[0] + h * x[1]
         x_m = np.vstack((x_m, x))
 
-        x_mm = x_m[-1]
+        '''x_mm = x_m[-1]
         c = prediction(x_mm, u_b, func)
-        tau_prev = (-1) * (K_m[0] * (c[0] - pi) + K_m[1] * c[1])  # Прогноз (K_m @ c)
-        # tau_prev = (-1) * (K_m[0] * (x_b[0] - pi) + K_m[1] * x_b[1])  # Без прогноза
+        tau_prev = (-1) * (K_m[0] * (c[0] - pi) + K_m[1] * c[1])  # Прогноз (K_m @ c) '''
+        tau_prev = (-1) * (K_m[0] * (x_b[0] - pi) + K_m[1] * x_b[1])  # Без прогноза
         u_b.append(tau_prev)
     return x_m
 
