@@ -41,8 +41,8 @@ B = np.array(([0.0], [1.0]))
 K = control.matlab.place(A, B, poles)
 K_m = (np.asarray(K)).flatten()
 
-x_start = 1.7
-x_d = 2.9
+x_start = 0.0
+x_d = pi/2
 
 
 def rp_nonlin(x):
@@ -107,7 +107,6 @@ def prediction(x, u_b, func):
         x = euler_step(x, buf[i], func)
     return x
 
-
 def euler_pred(t, func, x0):
     N = np.size(t) - 1
     p0 = x0
@@ -130,25 +129,33 @@ sol_pred = euler_pred(TM, rp_nonlin_pred, x_start)
 
 
 
-def sim_step(x0, buff):
+'''def sim_step(x0, buff):
     p0 = x0[0]
     v0 = x0[1]
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=p0, controlMode=p.POSITION_CONTROL)
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=v0)
-    torque = buff
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=p0, targetVelocity=v0, controlMode=p.TORQUE_CONTROL, force=torque)
 
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=p0, controlMode=p.POSITION_CONTROL)
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=v0, controlMode=p.VELOCITY_CONTROL, force=0)
+
+    p.stepSimulation()
     jointPosition = p.getJointState(boxId, jointIndex=1)[0]
     jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
     vpos = [jointPosition, jointVelocity]
-    p.stepSimulation()
     return vpos
 
 def sim_prediction(x, buff):
+    p0 = x[0]
+    v0 = x[1]
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=p0, controlMode=p.POSITION_CONTROL)
+    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=v0, controlMode=p.VELOCITY_CONTROL, force=0)
     for i in range(len(buff)-1):
-        x = sim_step(x, buff[i])
+        #p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=buff[i])
+        jointPosition = p.getJointState(boxId, jointIndex=1)[0]
+        jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
+        x = [jointPosition, jointVelocity]
+        p.stepSimulation()
+        #x = sim_step(x, b[i])
     return x
-
+'''
 def sim(q0):
     t = 0
     p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=q0, controlMode=p.POSITION_CONTROL)
@@ -162,7 +169,12 @@ def sim(q0):
     u_buff = [0 for j in range(m)]
 
     for i in range(0, T):
-        global upr_s_list
+        '''global upr_s_list
+        torque = u_buff[0]
+        upr_s_list = np.append(upr_s_list, torque)
+        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
+        u_buff.pop(0)'''
+
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
         jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
         position_list[i] = jointPosition
@@ -173,21 +185,21 @@ def sim(q0):
         vec_s = np.vstack((vec_0, vec_1))
         vec_ss = vec_s.reshape(1, 2)
         x_n = vec_ss[-1]
+        kv = K @ vec_s
+        #f = sim_prediction(x_n, u_buff)
+        #kf = K_m[0] * (f[0]-x_d) + K_m[1] * f[1]
+        torque = (-1) * (kv * mass * length ** 2) + b * vec_1 + mass * g * length * np.sin(vec_0)
+        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
+                                force=torque)
+        #u_buff.append(torque_prev)
 
-        torque = u_buff[0]
-        upr_s_list = np.append(upr_s_list, torque)
-        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
-        u_buff.pop(0)
-        f = sim_prediction(x_n, u_buff)
-        kf = K_m[0] * (f[0] - x_d) + K_m[1] * f[1]
-        torque_prev = (-1) * (kf * mass * length ** 2) + b * vec_1 + mass * g * length * np.sin(vec_0 - x_d)
-        u_buff.append(torque_prev)
         p.stepSimulation()
         time_list[i] = t
         t += dt
     return position_list
 
 sim_sol = sim(x_start)
+
 
 
 t1 = np.linspace(0, 1200*1/240, 1200)
@@ -202,8 +214,8 @@ pylab.title('График решения для x_d = {}'.format(x_d))
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
 pylab.plot(t2, xD, color='k', linestyle=':', label="Желаемое значение")
-pylab.plot(t1, sol[:, 0], color='b', label='Нелинейная система без всего')
-pylab.plot(t1, sol_zap[:, 0], color='c', label='Нелинейная система с запаздыванием')
+#pylab.plot(t1, sol[:, 0], color='b', label='Нелинейная система без всего')
+#pylab.plot(t1, sol_zap[:, 0], color='c', label='Нелинейная система с запаздыванием')
 pylab.plot(t3, sol_pred[:, 0], color='g', label='Нелинейная система с запаздыванием и прогнозом')
 pylab.plot(time_list, np.array(sim_sol), color='k', label='Симулятор')
 pylab.legend()
