@@ -50,9 +50,9 @@ def double_pendulum_sim(the_0):
     for _ in range(1000):
         p.stepSimulation()
 
-    joint_states = p.getJointStates(boxId, jointIndices=joint_id)
+    '''joint_states = p.getJointStates(boxId, jointIndices=joint_id)
     joint_positions = np.array([i[0] for i in joint_states])
-    the_0 = joint_positions
+    the_0 = joint_positions'''
 
     p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.VELOCITY_CONTROL, forces=[0.0, 0.0])
     positions_list = []
@@ -62,8 +62,12 @@ def double_pendulum_sim(the_0):
         joint_positions = np.array([i[0] for i in joint_states])
         joint_velocities = np.array([j[1] for j in joint_states])
         positions_list.append(joint_positions)
-
         w_list.append(joint_velocities)
+
+        torque = [2.0, 1.5]
+        p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.TORQUE_CONTROL,
+                                    forces=torque)
+
         p.stepSimulation()
         t_list.append(t)
         t += dt
@@ -78,35 +82,40 @@ p.disconnect()
 
 
 
-
 i_c = [0.1, 0, 0.1, 0]  # initial conditions
 
 T = int(5 / dt)
 TM = [0] * T
 
-def double_pendulum_mod(x, t, M1, M2, L1, L2, g):
-    dx = np.zeros(4)
-    c = np.cos(x[0] - x[2])
-    s = np.sin(x[0] - x[2])
+def model(x, t, L1, L2, M1, M2):
+    theta1, w1, theta2, w2 = x
 
-    dx[0] = x[1]
-    dx[1] = (M2 * g * np.sin(x[2]) * c - M2 * s * (L1 * c * x[1] ** 2 + L2 * x[3] ** 2) - (M1 + M2) * g * np.sin(x[0])) / (L1 * (M1 + M2 * s ** 2))
-    dx[2] = x[3]
-    dx[3] = ((M1 + M2) * (L1 * x[1] ** 2 * s - g * np.sin(x[2]) + g * np.sin(x[0]) * c) + M2 * L2 * x[3] ** 2 * s * c) / (L2 * (M1 + M2 * s ** 2))
-    return dx
+    c, s = np.cos(theta1 - theta2), np.sin(theta1 - theta2)
+
+    theta1dot = w1
+    w1dot = (M2 * g * np.sin(theta2) * c - M2 * s * (L1 * w1**2 * c + L2 * w2**2) - (M1+M2) * g * np.sin(theta1)) / (L1 * (M1 + M2 * s**2))
+    theta2dot = w2
+    w2dot = ((M1+M2) * (L1 * w1**2 * s - g * np.sin(theta2) + g * np.sin(theta1) * c) + M2 * L2 * w2**2 * s * c) / (L2 * (M1 + M2 * s**2))
+    return theta1dot, w1dot, theta2dot, w2dot
+
+def energy(x):
+    th1, th1d, th2, th2d = x.T
+    PE = -(M1 + M2) * L1 * g * np.cos(th1) - M2 * L2 * g * np.cos(th2)
+    KE = 0.5 * M1 * (L1 * th1d) ** 2 + 0.5 * M2 * ((L1 * th1d) ** 2 + (L2 * th2d) ** 2 + 2 * L1 * L2 * th1d * th2d * np.cos(th1 - th2))
+    return KE + PE
 
 t1 = np.linspace(0, 1200*1/240, 1200)
-sol = odeint(double_pendulum_mod, i_c, t1, args=(M1, M2, L1, L2, g))
+a = odeint(model, i_c, t1, args=(L1, L2, M1, M2))
 
-an1 = sol[:, 0]
-avel1 = sol[:, 1]
-an2 = sol[:, 2]
-avel2 = sol[:, 3]
+an1 = a[:, 0]
+vel1 = a[:, 1]
+an2 = a[:, 2]
+vel2 = a[:, 3]
 
 p1 = L1 * np.sin(an1)
-w1 = -L1 * np.cos(an1)
-p2 = p1 + L2 * np.sin(avel1)
-w2 = w1 - L2 * np.cos(avel1)
+v1 = -L1 * np.cos(an1)
+p2 = p1 + L2 * np.sin(vel1)
+v2 = v1 - L2 * np.cos(vel1)
 
 
 fig1 = plt.figure("Решение модели")
@@ -123,7 +132,6 @@ ax2.title.set_text('2 звено:')
 ax1.grid()
 ax2.grid()
 plt.show()
-
 
 fig2 = plt.figure("Симуляторное решение")
 ax1 = fig2.add_subplot(321)
