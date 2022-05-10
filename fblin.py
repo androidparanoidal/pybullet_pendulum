@@ -9,9 +9,12 @@ p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, -9.81)
 boxId = p.loadURDF("./simple.urdf", useFixedBase=True)
+boxId2 = p.loadURDF("./simple.urdf", useFixedBase=True)
 
 p.changeDynamics(boxId, 1, linearDamping=0, angularDamping=0)
 p.changeDynamics(boxId, 2, linearDamping=0, angularDamping=0)
+p.changeDynamics(boxId2, 1, linearDamping=0, angularDamping=0)
+p.changeDynamics(boxId2, 2, linearDamping=0, angularDamping=0)
 
 dt = 1/240
 T = int(5 / dt)
@@ -20,6 +23,7 @@ time_list = [0]*T
 position_list = [0]*T
 w_list = [0]*T
 upr_s_list = np.array([])
+upr_m_list = np.array([])
 
 b = 1
 mass = 2
@@ -35,7 +39,7 @@ pi = math.pi
 
 u_b = [0 for j in range(m)]
 
-poles = np.array(([-8], [-4]))
+poles = np.array(([-7], [-4]))
 A = np.array(([0.0, 1.0], [0.0, 0.0]))
 B = np.array(([0.0], [1.0]))
 K = control.matlab.place(A, B, poles)
@@ -113,8 +117,10 @@ def euler_pred(t, func, x0):
     v0 = 0
     x = [p0, v0]
     x_m = np.array([x])
+    global upr_m_list
     for i in range(N):
         tau = u_b[0]
+        upr_m_list = np.append(upr_m_list, tau)
         dx = func(x, tau)[1]
         u_b.pop(0)
         x[1] = x[1] + h * dx
@@ -124,86 +130,54 @@ def euler_pred(t, func, x0):
         c = prediction(x_mm, u_b, func)
         tau_prev = (-1) * ((K_m[0] * (c[0] - x_d) + K_m[1] * c[1]) * mass * length**2) + b * c[1] + mass * g * length * np.sin(c[0]-x_d)
         u_b.append(tau_prev)
+
     return x_m
 sol_pred = euler_pred(TM, rp_nonlin_pred, x_start)
+l = upr_m_list[-1]
+upr_m_list = np.append(upr_m_list, l)
 
 
-
-'''def sim_step(x0, buff):
-    p0 = x0[0]
-    v0 = x0[1]
-
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=p0, controlMode=p.POSITION_CONTROL)
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=v0, controlMode=p.VELOCITY_CONTROL, force=0)
-
-    p.stepSimulation()
-    jointPosition = p.getJointState(boxId, jointIndex=1)[0]
-    jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
-    vpos = [jointPosition, jointVelocity]
-    return vpos
-
-def sim_prediction(x, buff):
-    p0 = x[0]
-    v0 = x[1]
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=p0, controlMode=p.POSITION_CONTROL)
-    p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=v0, controlMode=p.VELOCITY_CONTROL, force=0)
-    for i in range(len(buff)-1):
-        #p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=buff[i])
-        jointPosition = p.getJointState(boxId, jointIndex=1)[0]
-        jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
-        x = [jointPosition, jointVelocity]
-        p.stepSimulation()
-        #x = sim_step(x, b[i])
-    return x
-'''
-def sim(q0):
+def sim(q0, func):
     t = 0
     p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetPosition=q0, controlMode=p.POSITION_CONTROL)
     for _ in range(1000):
         p.stepSimulation()
-
-    jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
-    q0 = jointPosition
     p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.VELOCITY_CONTROL, force=0)
     position_list = [0] * T
     u_buff = [0 for j in range(m)]
 
     for i in range(0, T):
-        '''global upr_s_list
-        torque = u_buff[0]
-        upr_s_list = np.append(upr_s_list, torque)
-        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
-        u_buff.pop(0)'''
-
+        global upr_s_list
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
         jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
         position_list[i] = jointPosition
         w_list[i] = jointVelocity
-
-        vec_0 = np.array(jointPosition-x_d)
+        vec_0 = np.array(jointPosition)
         vec_1 = np.array(jointVelocity)
         vec_s = np.vstack((vec_0, vec_1))
         vec_ss = vec_s.reshape(1, 2)
         x_n = vec_ss[-1]
-        kv = K @ vec_s
-        #f = sim_prediction(x_n, u_buff)
-        #kf = K_m[0] * (f[0]-x_d) + K_m[1] * f[1]
-        torque = (-1) * (kv * mass * length ** 2) + b * vec_1 + mass * g * length * np.sin(vec_0)
-        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL,
-                                force=torque)
-        #u_buff.append(torque_prev)
 
+        torque = u_buff[0]
+        upr_s_list = np.append(upr_s_list, torque)
+        p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
+        u_buff.pop(0)
+        f = prediction(x_n, u_buff, func)
+        #print(f)
+        torque_prev = (-1) * ((K_m[0] * (f[0]-x_d) + K_m[1] * f[1]) * mass * length ** 2) + b * f[1] + mass * g * length * np.sin(f[0]-x_d)
+        u_buff.append(torque_prev)
         p.stepSimulation()
-        time_list[i] = t
         t += dt
+
+    '''for e in upr_s_list:
+        print(e, end="\n")'''
     return position_list
 
-sim_sol = sim(x_start)
-
+sim_sol = sim(x_start, rp_nonlin_pred)
 
 
 t1 = np.linspace(0, 1200*1/240, 1200)
-t3 = np.linspace(m*1/240, 1200*1/240+(m*1/250), 1200)
+t3 = np.linspace(m*1/240, 1200*1/240+(m*1/240), 1200)
 t2 = np.linspace(0, 5)
 xD = np.full(50, x_d)
 
@@ -217,6 +191,17 @@ pylab.plot(t2, xD, color='k', linestyle=':', label="Желаемое значе�
 #pylab.plot(t1, sol[:, 0], color='b', label='Нелинейная система без всего')
 #pylab.plot(t1, sol_zap[:, 0], color='c', label='Нелинейная система с запаздыванием')
 pylab.plot(t3, sol_pred[:, 0], color='g', label='Нелинейная система с запаздыванием и прогнозом')
-pylab.plot(time_list, np.array(sim_sol), color='k', label='Симулятор')
+pylab.plot(t3, np.array(sim_sol), color='k', label='Симулятор')
+pylab.legend()
+pylab.show()
+
+
+pylab.figure(2)
+pylab.grid()
+pylab.title("График управления:")
+pylab.xlabel('t', fontsize=12)
+pylab.ylabel('u', fontsize=12)
+pylab.plot(t1, upr_m_list, color='c', label='model')
+pylab.plot(t1, upr_s_list, color='k', linestyle=':', label='sim')
 pylab.legend()
 pylab.show()
