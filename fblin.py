@@ -86,9 +86,13 @@ sol = euler(TM, rp_nonlin, x_start)
 sol_zap = euler(TM, rp_nonlin_zap, x_start)
 
 
-def rp_nonlin_pred(x, tau):
-    x = np.array(([x[0]-x_d], [x[1]]))
-    dx = np.matmul(A, x) + (B * tau)
+Bn = np.array(([0.0], [c3]))
+def rp_nonlin2(x, tau):
+    x = np.array(([x[0]], [x[1]]))
+    el1 = (x[1]).tolist()
+    el2 = (np.sin(x[0])).tolist()
+    An = np.array(([el1[0]], [-c2 * el2[0] - c1 * el1[0]]))
+    dx = An + (Bn * tau)
     dx = dx.reshape(1, 2)
     dx_n = dx.tolist()
     return dx_n[0]
@@ -128,11 +132,11 @@ def euler_pred(t, func, x0):
         x_m = np.vstack((x_m, x))
         x_mm = x_m[-1]
         c = prediction(x_mm, u_b, func)
-        tau_prev = (-1) * ((K_m[0] * (c[0] - x_d) + K_m[1] * c[1]) * mass * length**2) + b * c[1] + mass * g * length * np.sin(c[0]-x_d)
+        tau_prev = (-1) * ((K_m[0] * (c[0] - x_d) + K_m[1] * c[1]) * mass * length**2) + b * c[1] + mass * g * length * np.sin(c[0])
         u_b.append(tau_prev)
 
     return x_m
-sol_pred = euler_pred(TM, rp_nonlin_pred, x_start)
+sol_pred = euler_pred(TM, rp_nonlin2, x_start)
 l = upr_m_list[-1]
 upr_m_list = np.append(upr_m_list, l)
 
@@ -148,12 +152,11 @@ def sim(q0, func):
 
     for i in range(0, T):
         global upr_s_list
-
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
         jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
         position_list[i] = jointPosition
         w_list[i] = jointVelocity
-        vec_0 = np.array(jointPosition-x_d)
+        vec_0 = np.array(jointPosition)
         vec_1 = np.array(jointVelocity)
         vec_s = np.vstack((vec_0, vec_1))
         vec_ss = vec_s.reshape(1, 2)
@@ -165,7 +168,7 @@ def sim(q0, func):
         p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
         u_buff.pop(0)
 
-        torque_prev = (-1) * ((K_m[0] * (f[0]) + K_m[1] * f[1]) * mass * length ** 2) + b * f[1] + mass * g * length * np.sin(f[0])
+        torque_prev = (-1) * ((K_m[0] * (f[0]-x_d) + K_m[1] * f[1]) * mass * length ** 2) + b * f[1] + mass * g * length * np.sin(f[0])
         u_buff.append(torque_prev)
         p.stepSimulation()
         t += dt
@@ -174,7 +177,7 @@ def sim(q0, func):
         print(e, end="\n")'''
     return position_list
 
-sim_sol = sim(x_start, rp_nonlin_pred)
+sim_sol = sim(x_start, rp_nonlin2)
 p.disconnect()
 
 t1 = np.linspace(0, 1200*1/240, 1200)
@@ -192,7 +195,7 @@ pylab.plot(t2, xD, color='k', linestyle=':', label="Желаемое значе�
 #pylab.plot(t1, sol[:, 0], color='b', label='Нелинейная система без всего')
 #pylab.plot(t1, sol_zap[:, 0], color='c', label='Нелинейная система с запаздыванием')
 pylab.plot(t3, sol_pred[:, 0], color='g', label='Нелинейная система с запаздыванием и прогнозом')
-pylab.plot(t3, np.array(sim_sol), color='k', label='Симулятор')
+pylab.plot(t3, np.array(sim_sol), color='c', label='Симулятор')
 pylab.legend()
 pylab.show()
 
