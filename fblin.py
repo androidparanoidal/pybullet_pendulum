@@ -87,7 +87,7 @@ sol_zap = euler(TM, rp_nonlin_zap, x_start)
 
 
 def rp_nonlin_pred(x, tau):
-    x = np.array(([x[0]], [x[1]]))
+    x = np.array(([x[0]-x_d], [x[1]]))
     dx = np.matmul(A, x) + (B * tau)
     dx = dx.reshape(1, 2)
     dx_n = dx.tolist()
@@ -148,23 +148,24 @@ def sim(q0, func):
 
     for i in range(0, T):
         global upr_s_list
+
         jointPosition, *_ = p.getJointState(boxId, jointIndex=1)
         jointVelocity = p.getJointState(boxId, jointIndex=1)[1]
         position_list[i] = jointPosition
         w_list[i] = jointVelocity
-        vec_0 = np.array(jointPosition)
+        vec_0 = np.array(jointPosition-x_d)
         vec_1 = np.array(jointVelocity)
         vec_s = np.vstack((vec_0, vec_1))
         vec_ss = vec_s.reshape(1, 2)
         x_n = vec_ss[-1]
+        f = prediction(x_n, u_buff, func)
 
         torque = u_buff[0]
         upr_s_list = np.append(upr_s_list, torque)
         p.setJointMotorControl2(bodyIndex=boxId, jointIndex=1, targetVelocity=0, controlMode=p.TORQUE_CONTROL, force=torque)
         u_buff.pop(0)
-        f = prediction(x_n, u_buff, func)
-        #print(f)
-        torque_prev = (-1) * ((K_m[0] * (f[0]-x_d) + K_m[1] * f[1]) * mass * length ** 2) + b * f[1] + mass * g * length * np.sin(f[0]-x_d)
+
+        torque_prev = (-1) * ((K_m[0] * (f[0]) + K_m[1] * f[1]) * mass * length ** 2) + b * f[1] + mass * g * length * np.sin(f[0])
         u_buff.append(torque_prev)
         p.stepSimulation()
         t += dt
@@ -174,7 +175,7 @@ def sim(q0, func):
     return position_list
 
 sim_sol = sim(x_start, rp_nonlin_pred)
-
+p.disconnect()
 
 t1 = np.linspace(0, 1200*1/240, 1200)
 t3 = np.linspace(m*1/240, 1200*1/240+(m*1/240), 1200)
