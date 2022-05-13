@@ -51,7 +51,6 @@ x_d = pi/2
 
 def rp_nonlin(x):
     x = np.array(([x[0]-x_d], [x[1]]))
-    print(x[0])
     el = (np.sin(x[0])).tolist()
     tau = (-1) * ((K @ x) * mass * length**2) + b * x[1] + mass * g * length * el[0]
     dx = np.matmul(A, x) + (B * tau)
