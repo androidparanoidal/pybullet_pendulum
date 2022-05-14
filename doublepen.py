@@ -29,10 +29,9 @@ positions_list = []
 w_list = []
 
 
-def double_pendulum_sim(the_0):
+def double_pendulum_sim(the0):
     t = 0
-    # go to the starting position
-    p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetPositions=the_0, controlMode=p.POSITION_CONTROL)
+    p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetPositions=the0, controlMode=p.POSITION_CONTROL)
     for _ in range(1000):
         p.stepSimulation()
 
@@ -74,19 +73,15 @@ t1 = np.linspace(0, 1200*1/240, 1200)
 
 fig2 = plt.figure("Симуляторное решение")
 ax1 = fig2.add_subplot(321)
-ax1.set_xlabel('t')
 ax1.set_ylabel('θ(t)')
 ax1.plot(t_list, sol_sim_p[:, 0])
 ax2 = fig2.add_subplot(322)
-ax2.set_xlabel('t')
 ax2.set_ylabel('θ(t)')
 ax2.plot(t_list, sol_sim_p[:, 1])
 ax3 = fig2.add_subplot(323)
-ax3.set_xlabel('t')
 ax3.set_ylabel("θ'(t)")
 ax3.plot(t_list, vel_list[:, 0])
 ax4 = fig2.add_subplot(324)
-ax4.set_xlabel('t')
 ax4.set_ylabel("θ'(t)")
 ax4.plot(t_list, vel_list[:, 1])
 ax5 = fig2.add_subplot(325)
