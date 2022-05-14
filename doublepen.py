@@ -22,11 +22,8 @@ joint_id = [1, 3]
 the0_1 = 0.1
 the0_2 = 0.1
 the_0 = [the0_1, the0_2]
-T = int(5 / dt)
+T = int(10 / dt)
 TM = [0] * T
-t_list = []
-positions_list = []
-w_list = []
 
 
 def double_pendulum_sim(the0):
@@ -35,55 +32,60 @@ def double_pendulum_sim(the0):
     for _ in range(1000):
         p.stepSimulation()
 
-    '''joint_states = p.getJointStates(boxId, jointIndices=joint_id)
-    joint_positions = np.array([i[0] for i in joint_states])
-    the_0 = joint_positions'''
-
     p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.VELOCITY_CONTROL, forces=[0.0, 0.0])
-    positions_list = []
+    PLIST = []
 
-    while t < 5:
+    for i in range(0, T):
         joint_states = p.getJointStates(boxId, jointIndices=joint_id)
         joint_positions = np.array([i[0] for i in joint_states])
         joint_velocities = np.array([j[1] for j in joint_states])
-        positions_list.append(joint_positions)
-        w_list.append(joint_velocities)
+        tl = np.concatenate((joint_positions, joint_velocities))
+        print('tl:', tl)
+        jp = p.getJointStates(boxId, jointIndices=joint_id)[0]
+        jv = p.getJointStates(boxId, jointIndices=joint_id)[1]
+        print(jp)
+        print(jp[0]) #позиция первого звена
+        print(jp[1]) #скорость первого
+        print(jv)
+        print(jv[0]) #позиция второго
+        print(jv[1], '\n')
+
+        #print(i)
+        #print(tl)
+        PLIST.append(tl)
+
 
         #torque = [2.0, 1.5]
         #p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.TORQUE_CONTROL, forces=torque)
 
         p.stepSimulation()
-        t_list.append(t)
         t += dt
 
-    pos_list = np.stack(positions_list, axis=0)
+    pos_list = np.stack(PLIST, axis=0)
     return pos_list
 
-sol_sim_p = double_pendulum_sim(the_0)
-print(sol_sim_p)
-vel_list = np.stack(w_list, axis=0)
+
+sol_sim = double_pendulum_sim(the_0)
+#print(sol_sim)
+
+
 
 p.disconnect()
 
-
-
-
-t1 = np.linspace(0, 1200*1/240, 1200)
-
-
+t1 = np.linspace(0, 2400*1/240, 2400)
 fig2 = plt.figure("Симуляторное решение")
 ax1 = fig2.add_subplot(321)
 ax1.set_ylabel('θ(t)')
-ax1.plot(t_list, sol_sim_p[:, 0])
+ax1.plot(t1, sol_sim[:, 0])
 ax2 = fig2.add_subplot(322)
 ax2.set_ylabel('θ(t)')
-ax2.plot(t_list, sol_sim_p[:, 1])
+ax2.plot(t1, sol_sim[:, 1])
 ax3 = fig2.add_subplot(323)
 ax3.set_ylabel("θ'(t)")
-ax3.plot(t_list, vel_list[:, 0])
+ax3.plot(t1, sol_sim[:, 2])
 ax4 = fig2.add_subplot(324)
 ax4.set_ylabel("θ'(t)")
-ax4.plot(t_list, vel_list[:, 1])
+ax4.plot(t1, sol_sim[:, 3])
 ax5 = fig2.add_subplot(325)
 ax5.set_xlabel('t')
 ax5.set_ylabel('u')
