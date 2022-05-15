@@ -74,10 +74,10 @@
     <joint name="joint_1" type="revolute">
         <parent link="base"/>
         <child link="link_1"/>
-        <origin xyz="0.0 0 0" rpy="0 3.14159265358979323846 0"/>
+        <origin xyz="0.0 0 0" rpy="0 1.5707963267948966 0"/>
         <limit effort="0" velocity="0"/>
         <dynamics damping="1" friction="0"/>
-        <axis xyz="0 1 0"/>
+        <axis xyz="0 -1 0"/>
     </joint>
 
     <joint name="joint_eef1" type="fixed">
@@ -122,10 +122,10 @@
     <joint name="joint_2" type="revolute">
         <parent link="link_eef1"/>
         <child link="link_2"/>
-        <origin xyz="0.0 0 0" rpy="0 3.14159265358979323846 0"/>
+        <origin xyz="0.0 0 0" rpy="0 0 0"/>
         <limit effort="0" velocity="0"/>
         <dynamics damping="1" friction="0"/>
-        <axis xyz="0 1 0"/>
+        <axis xyz="0 -1 0"/>
     </joint>
 
     <joint name="joint_eef2" type="fixed">

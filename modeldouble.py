@@ -58,6 +58,11 @@ def model(x, TAU):
     dq1 = x[2]
     dq2 = x[3]
     w = np.array(([dq1[0]], [dq2[0]]))
+    damp = np.array([1, 1])
+    dem_w1 = damp[0] * w[0]
+    dem_w2 = damp[1] * w[1]
+    dem_w = np.array(([dem_w1[0]], [dem_w2[0]]))
+
     UPR = np.array(([TAU[0]], [TAU[1]]))
 
     mm1 = (M1 * L1**2 + M2 * (L1**2 + 2*L1*L2 * np.cos(q2) + L2**2)).tolist()
@@ -73,7 +78,7 @@ def model(x, TAU):
     gg2 = (M2 * g * L2 * np.cos(q1 + q2)).tolist()
     G = np.array(([gg1[0]], [gg2[0]]))
 
-    expr = UPR - C - G #- w
+    expr = UPR - C - G - dem_w
     ddq = np.dot(M_inv, expr)
     dx = np.concatenate((w, ddq))
     dx = dx.reshape(1, 4)
@@ -127,6 +132,7 @@ def euler_pred(t, func, q_start):
         q2 = c[1]
         dq1 = c[2]
         dq2 = c[3]
+        w = np.array(([dq1], [dq2]))
 
         mm1 = (M1 * L1 ** 2 + M2 * (L1 ** 2 + 2 * L1 * L2 * np.cos(q2) + L2 ** 2)).tolist()
         mm2 = (M2 * (L2 * L2 * np.cos(q2) + L2 ** 2)).tolist()
@@ -143,7 +149,7 @@ def euler_pred(t, func, q_start):
         k1c = K1[0] * (c[0] - q_d1) + K1[1] * (c[1] - q_d2) + K1[2] * c[2] + K1[3] * c[3]
         k2c = K2[0] * (c[0] - q_d1) + K2[1] * (c[1] - q_d2) + K2[2] * c[2] + K2[3] * c[3]
         U = (-1) * np.array(([k1c], [k2c]))
-        u_prev = (M @ U) + C + G
+        u_prev = (M @ U) + C + G + w
         u_b[0].append(u_prev[0][0])
         u_b[1].append(u_prev[1][0])
     return pos_m
@@ -179,6 +185,7 @@ def pendulum_sim(the0, func):
         d = prediction(vec, tau_b, func)
         q1, q2, dq1, dq2 = d[0], d[1], d[2], d[3]
 
+        w = np.array(([dq1], [dq2]))
         tr1 = tau_b[0][0]
         tr2 = tau_b[1][0]
         upr_s1_list = np.append(upr_s1_list, tr1)
@@ -200,8 +207,8 @@ def pendulum_sim(the0, func):
 
         k1d = K1[0] * (q1 - q_d1) + K1[1] * (q2 - q_d2) + K1[2] * dq1 + K1[3] * dq2
         k2d = K2[0] * (q1 - q_d1) + K2[1] * (q2 - q_d2) + K2[2] * dq1 + K2[3] * dq2
-        U = (-1) * np.array(([k1d], [k2d])) #np.array(([0], [0]))
-        trq_prev = (M @ U) + C + G
+        U = (-1) * np.array(([k1d], [k2d]))
+        trq_prev = (M @ U) + C + G + w
         tau_b[0].append(trq_prev[0][0])
         tau_b[1].append(trq_prev[1][0])
         p.stepSimulation()

@@ -46,7 +46,7 @@ K = control.matlab.place(A, B, poles)
 K_m = (np.asarray(K)).flatten()
 
 x_start = 0.0
-x_d = pi/2
+x_d = 0.9
 
 
 def rp_nonlin(x):
@@ -192,14 +192,14 @@ pylab.title('График решения для x_d = {}'.format(x_d))
 pylab.xlabel('t', fontsize=12)
 pylab.ylabel('x(t)', fontsize=12)
 pylab.plot(t2, xD, color='k', linestyle=':', label="Желаемое значение")
-#pylab.plot(t1, sol[:, 0], color='b', label='Нелинейная система без всего')
+pylab.plot(t1, sol[:, 0], color='b', label='Нелинейная система без всего')
 #pylab.plot(t1, sol_zap[:, 0], color='c', label='Нелинейная система с запаздыванием')
 pylab.plot(t3, sol_pred[:, 0], color='g', label='Нелинейная система с запаздыванием и прогнозом')
 pylab.plot(t3, np.array(sim_sol), color='c', label='Симулятор')
 pylab.legend()
 pylab.show()
 
-
+'''
 pylab.figure(2)
 pylab.grid()
 pylab.title("График управления:")
@@ -209,3 +209,4 @@ pylab.plot(t1, upr_m_list, color='c', label='model')
 pylab.plot(t1, upr_s_list, color='k', linestyle=':', label='sim')
 pylab.legend()
 pylab.show()
+'''

@@ -88,7 +88,7 @@ def model_simple(x):
     k1c = K1[0] * (q1-q_d1) + K1[1] * (q2-q_d2) + K1[2] * dq1 + K1[3] * dq2
     k2c = K2[0] * (q1-q_d1) + K2[1] * (q2-q_d2) + K2[2] * dq1 + K2[3] * dq2
     U = (-1) * np.array(([k1c[0]], [k2c[0]]))
-    UPR = (M @ U) + C + G
+    UPR = (M @ U) + C + G + w
     expr = UPR - C - G - w
 
     ddq = np.dot(M_inv, expr)
@@ -134,11 +134,12 @@ def pendulum_sim(the0):
         C = Cor_Matrixforsim(vec)
         G = Grav_Matrix(vec)
         M = Mass_Matrix(vec)
+        w = np.array(([j_vel1], [j_vel2]))
 
         k1d = K1[0] * (j_pos1 - q_d1) + K1[1] * (j_pos2 - q_d2) + K1[2] * j_vel1 + K1[3] * j_vel2
         k2d = K2[0] * (j_pos1 - q_d1) + K2[1] * (j_pos2 - q_d2) + K2[2] * j_vel1 + K2[3] * j_vel2
         U = (-1) * np.array(([k1d], [k2d]))
-        trq = (M @ U) + C + G
+        trq = (M @ U) + C + G + w
         
         tr1 = trq[0][0]
         tr2 = trq[1][0]
