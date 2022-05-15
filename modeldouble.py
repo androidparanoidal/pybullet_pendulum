@@ -20,11 +20,12 @@ M1, M2 = 2, 1.5
 g = 9.81
 pi = math.pi
 
-q_0 = np.array([0.1, 0.1, 0, 0])
+the_0 = [pi/2, 0.0]
+q_0 = np.array([pi/2, 0.0, 0, 0])
 q_d1 = pi/2
 q_d2 = pi
 
-T = int(10 / dt)
+T = int(8 / dt)
 TM = [0] * T
 upr_m1_list = np.array([])
 upr_m2_list = np.array([])
@@ -76,14 +77,12 @@ def model(x, TAU):
 
 
 def euler_step(x0, b1, b2, func):
-    #print('b1ib2:', b1, b2)
     p1 = x0[0]
     p2 = x0[1]
     v1 = x0[2]
     v2 = x0[3]
     pos = [p1, p2, v1, v2]
     buf = [b1, b2]
-    #print('buf iz b1b2=', buf)
     df1 = func(pos, buf)[2]
     df2 = func(pos, buf)[3]
     pos[2] = pos[2] + h * df1
@@ -155,7 +154,6 @@ upr_m2_list = np.append(upr_m2_list, em2)
 
 
 joint_id = [1, 3]
-the_0 = [0.1, 0.1]
 
 def pendulum_sim(the0, func):
     t = 0
@@ -175,11 +173,18 @@ def pendulum_sim(the0, func):
         j_vel1, j_vel2 = j1[1], j2[1]
         vec = [j_pos1, j_pos2, j_vel1, j_vel2]
         PLIST.append(vec)
+
         d = prediction(vec, tau_b, func)
-        q1 = d[0]
-        q2 = d[1]
-        dq1 = d[2]
-        dq2 = d[3]
+        q1, q2, dq1, dq2 = d[0], d[1], d[2], d[3]
+
+        tr1 = tau_b[0][0]
+        tr2 = tau_b[1][0]
+        upr_s1_list = np.append(upr_s1_list, tr1)
+        upr_s2_list = np.append(upr_s2_list, tr2)
+        torques = [tr1, tr2]
+        p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.TORQUE_CONTROL, forces=torques)
+        tau_b[0].pop(0)
+        tau_b[1].pop(0)
 
         mm1 = (M1 * L1 ** 2 + M2 * (L1 ** 2 + 2 * L1 * L2 * np.cos(q2) + L2 ** 2)).tolist()
         mm2 = (M2 * (L2 * L2 * np.cos(q2) + L2 ** 2)).tolist()
@@ -191,20 +196,9 @@ def pendulum_sim(the0, func):
         gg2 = (M2 * g * L2 * np.cos(q1 + q2)).tolist()
         G = np.array(([gg1], [gg2]))
 
-        tr1 = tau_b[0][0]
-        tr2 = tau_b[1][0]
-        upr_s1_list = np.append(upr_s1_list, tr1)
-        upr_s2_list = np.append(upr_s2_list, tr2)
-        torques = [tr1, tr2]
-        p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.TORQUE_CONTROL, forces=torques)
-
-        tau_b[0].pop(0)
-        tau_b[1].pop(0)
-
-        k1c = K1[0] * (d[0] - q_d1) + K1[1] * (d[1] - q_d2) + K1[2] * d[2] + K1[3] * d[3]
-        k2c = K2[0] * (d[0] - q_d1) + K2[1] * (d[1] - q_d2) + K2[2] * d[2] + K2[3] * d[3]
-        U = (-1) * np.array(([k1c], [k2c]))
-
+        k1d = K1[0] * (q1 - q_d1) + K1[1] * (q2 - q_d2) + K1[2] * dq1 + K1[3] * dq2
+        k2d = K2[0] * (q1 - q_d1) + K2[1] * (q2 - q_d2) + K2[2] * dq1 + K2[3] * dq2
+        U = np.array(([0], [0])) #(-1) * np.array(([k1d], [k2d]))
         trq_prev = (M @ U) + C + G
         tau_b[0].append(trq_prev[0][0])
         tau_b[1].append(trq_prev[1][0])
@@ -217,10 +211,9 @@ sol_sim = pendulum_sim(the_0, model)
 
 
 
-
 p.disconnect()
-t1 = np.linspace(0, 2400*1/240, 2400)
-t2 = np.linspace(0, 10)
+t1 = np.linspace(0, 1920*1/240, 1920)
+t2 = np.linspace(0, 8)
 qd1 = np.full(50, q_d1)
 qd2 = np.full(50, q_d2)
 
@@ -228,8 +221,9 @@ fig1 = plt.figure("Графики решений")
 ax1 = fig1.add_subplot(321)
 ax1.set_ylabel('q')
 ax1.plot(t2, qd1, color='k', linestyle=':')
-ax1.plot(t1, el_sol[:, 0])
-ax1.plot(t1, sol_sim[:, 0])
+ax1.plot(t1, el_sol[:, 0], label='model')
+ax1.plot(t1, sol_sim[:, 0], label='sim')
+ax1.legend()
 ax1.grid()
 ax2 = fig1.add_subplot(322)
 ax2.set_ylabel('q')
