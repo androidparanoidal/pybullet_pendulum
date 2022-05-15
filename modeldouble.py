@@ -12,6 +12,10 @@ boxId = p.loadURDF("./double_pendulum.urdf", useFixedBase=True)
 
 p.changeDynamics(boxId, 1, linearDamping=0, angularDamping=0)
 p.changeDynamics(boxId, 2, linearDamping=0, angularDamping=0)
+p.changeDynamics(boxId, 3, linearDamping=0, angularDamping=0)
+
+'''for _id in range(p.getNumJoints(boxId)):
+    print(f'{_id} {p.getJointInfo(boxId, _id)[1]}')'''
 
 dt = 1 / 240
 h = dt
@@ -20,10 +24,10 @@ M1, M2 = 2, 1.5
 g = 9.81
 pi = math.pi
 
-the_0 = [pi/2, 0.0]
-q_0 = np.array([pi/2, 0.0, 0, 0])
+the_0 = [0.0, 0.0]
+q_0 = np.array([0.0, 0.0, 0, 0])
 q_d1 = pi/2
-q_d2 = pi
+q_d2 = pi/2
 
 T = int(8 / dt)
 TM = [0] * T
@@ -69,7 +73,7 @@ def model(x, TAU):
     gg2 = (M2 * g * L2 * np.cos(q1 + q2)).tolist()
     G = np.array(([gg1[0]], [gg2[0]]))
 
-    expr = UPR - C - G - w
+    expr = UPR - C - G #- w
     ddq = np.dot(M_inv, expr)
     dx = np.concatenate((w, ddq))
     dx = dx.reshape(1, 4)
@@ -83,11 +87,10 @@ def euler_step(x0, b1, b2, func):
     v2 = x0[3]
     pos = [p1, p2, v1, v2]
     buf = [b1, b2]
-    df1 = func(pos, buf)[2]
-    df2 = func(pos, buf)[3]
-    pos[2] = pos[2] + h * df1
+    df = func(pos, buf)
+    pos[2] = pos[2] + h * df[2]
     pos[0] = pos[0] + h * pos[2]
-    pos[3] = pos[3] + h * df2
+    pos[3] = pos[3] + h * df[3]
     pos[1] = pos[1] + h * pos[3]
     pos_m = [pos[0], pos[1], pos[2], pos[3]]
     return pos_m
@@ -110,13 +113,12 @@ def euler_pred(t, func, q_start):
         uv = np.array([u1, u2])
         upr_m1_list = np.append(upr_m1_list, u1)
         upr_m2_list = np.append(upr_m2_list, u2)
-        df1 = func(pos, uv)[2]
-        df2 = func(pos, uv)[3]
+        df = func(pos, uv)
         u_b[0].pop(0)
         u_b[1].pop(0)
-        pos[2] = pos[2] + h * df1
+        pos[2] = pos[2] + h * df[2]
         pos[0] = pos[0] + h * pos[2]
-        pos[3] = pos[3] + h * df2
+        pos[3] = pos[3] + h * df[3]
         pos[1] = pos[1] + h * pos[3]
         pos_m = np.vstack((pos_m, pos))
         pos_mm = pos_m[-1]
@@ -198,7 +200,7 @@ def pendulum_sim(the0, func):
 
         k1d = K1[0] * (q1 - q_d1) + K1[1] * (q2 - q_d2) + K1[2] * dq1 + K1[3] * dq2
         k2d = K2[0] * (q1 - q_d1) + K2[1] * (q2 - q_d2) + K2[2] * dq1 + K2[3] * dq2
-        U = np.array(([0], [0])) #(-1) * np.array(([k1d], [k2d]))
+        U = (-1) * np.array(([k1d], [k2d])) #np.array(([0], [0]))
         trq_prev = (M @ U) + C + G
         tau_b[0].append(trq_prev[0][0])
         tau_b[1].append(trq_prev[1][0])
@@ -255,5 +257,5 @@ ax6.set_ylabel('u')
 ax6.plot(t1, upr_m2_list)
 ax6.plot(t1, upr_s2_list)
 ax6.grid()
-plt.suptitle('Желаемые значения {} для первого и {} для второго звена'.format(q_d1, q_d2))
+plt.suptitle('Желаемые значения {} для первого и {} для второго звена'.format(round(q_d1, 5), round(q_d2, 5)))
 plt.show()
