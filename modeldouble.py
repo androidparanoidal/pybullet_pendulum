@@ -66,7 +66,7 @@ def model(x, TAU):
     UPR = np.array(([TAU[0]], [TAU[1]]))
 
     mm1 = (M1 * L1**2 + M2 * (L1**2 + 2*L1*L2 * np.cos(q2) + L2**2)).tolist()
-    mm2 = (M2 * (L2 * L2 * np.cos(q2) + L2**2)).tolist()  # mm3 = mm2
+    mm2 = (M2 * (L1 * L2 * np.cos(q2) + L2**2)).tolist()  # mm3 = mm2
     M = np.array([[mm1[0], mm2[0]], [mm2[0], M2 * L2**2]])
     M_inv = np.linalg.inv(M)
 
@@ -135,7 +135,7 @@ def euler_pred(t, func, q_start):
         w = np.array(([dq1], [dq2]))
 
         mm1 = (M1 * L1 ** 2 + M2 * (L1 ** 2 + 2 * L1 * L2 * np.cos(q2) + L2 ** 2)).tolist()
-        mm2 = (M2 * (L2 * L2 * np.cos(q2) + L2 ** 2)).tolist()
+        mm2 = (M2 * (L1 * L2 * np.cos(q2) + L2 ** 2)).tolist()
         M = np.array([[mm1, mm2], [mm2, M2 * L2 ** 2]])
 
         cc1 = (-M2 * L1 * L2 * np.sin(q2) * (2 * dq1 * dq2 + dq2 ** 2)).tolist()
@@ -196,7 +196,7 @@ def pendulum_sim(the0, func):
         tau_b[1].pop(0)
 
         mm1 = (M1 * L1 ** 2 + M2 * (L1 ** 2 + 2 * L1 * L2 * np.cos(q2) + L2 ** 2)).tolist()
-        mm2 = (M2 * (L2 * L2 * np.cos(q2) + L2 ** 2)).tolist()
+        mm2 = (M2 * (L1 * L2 * np.cos(q2) + L2 ** 2)).tolist()
         M = np.array([[mm1, mm2], [mm2, M2 * L2 ** 2]])
         cc1 = (-M2 * L1 * L2 * np.sin(q2) * (2 * dq1 * dq2 + dq2 ** 2)).tolist()
         cc2 = (M2 * L1 * L2 * np.sin(q2) * dq1 ** 2).tolist()
