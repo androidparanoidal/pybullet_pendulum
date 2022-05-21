@@ -56,7 +56,7 @@
                 <sphere radius="0.05"/>
             </geometry>
             <origin xyz="0 0 0.05" rpy="0 0 0" />
-            <material name="purple"/>
+            <material name="black"/>
         </visual>
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -109,7 +109,7 @@
                 <sphere radius="0.05"/>
             </geometry>
             <origin xyz="0 0 0.05" rpy="0 0 0" />
-            <material name="cyan"/>
+            <material name="black"/>
         </visual>
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
