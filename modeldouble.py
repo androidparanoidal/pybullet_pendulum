@@ -36,7 +36,7 @@ upr_m2_list = np.array([])
 upr_s1_list = np.array([])
 upr_s2_list = np.array([])
 
-m = 20
+m = 1
 u_b = [[0 for col in range(m)] for row in range(2)]
 
 poles = np.array(([-2], [-1], [-3], [-4]))

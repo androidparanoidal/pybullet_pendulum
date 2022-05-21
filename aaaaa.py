@@ -50,7 +50,7 @@ K2 = K[4:]
 def Mass_Matrix(x):
     q1, q2, dq1, dq2 = x[0], x[1], x[2], x[3]
     mm1 = M1 * L1 ** 2 + M2 * (L1 ** 2 + 2 * L1 * L2 * math.cos(q2) + L2 ** 2)
-    mm2 = M2 * (L2 * L2 * math.cos(q2) + L2 ** 2)
+    mm2 = M2 * (L1 * L2 * math.cos(q2) + L2 ** 2)
     M = np.array([[mm1, mm2], [mm2, M2 * L2 ** 2]])
     return M
 
@@ -77,6 +77,7 @@ def Grav_Matrix(x):
     return G
 
 def model_simple(x):
+    global upr_m1_list, upr_m2_list
     x = np.array(([x[0]], [x[1]], [x[2]], [x[3]]))
     q1, q2, dq1, dq2 = x[0], x[1], x[2], x[3]
     w = np.array(([dq1[0]], [dq2[0]]))
@@ -89,6 +90,9 @@ def model_simple(x):
     k2c = K2[0] * (q1-q_d1) + K2[1] * (q2-q_d2) + K2[2] * dq1 + K2[3] * dq2
     U = (-1) * np.array(([k1c[0]], [k2c[0]]))
     UPR = (M @ U) + C + G + w
+    upr_m1_list = np.append(upr_m1_list, UPR[0])
+    upr_m2_list = np.append(upr_m2_list, UPR[1])
+
     expr = UPR - C - G - w
 
     ddq = np.dot(M_inv, expr)
@@ -111,7 +115,10 @@ def euler(t, func, q_start):
     return pos_m
 
 el_sol = euler(TM, model_simple, q_0)
-
+em1 = upr_m1_list[-1]
+em2 = upr_m2_list[-1]
+upr_m1_list = np.append(upr_m1_list, em1)
+upr_m2_list = np.append(upr_m2_list, em2)
 
 joint_id = [1, 3]
 
@@ -123,6 +130,7 @@ def pendulum_sim(the0):
 
     p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.VELOCITY_CONTROL, forces=[0.0, 0.0])
     PLIST = []
+    global upr_s1_list, upr_s2_list
 
     for i in range(0, T):
         j1 = p.getJointStates(boxId, jointIndices=joint_id)[0]
@@ -145,6 +153,8 @@ def pendulum_sim(the0):
         tr2 = trq[1][0]
         torques = [tr1, tr2]
         p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.TORQUE_CONTROL, forces=torques)
+        upr_s1_list = np.append(upr_s1_list, tr1)
+        upr_s2_list = np.append(upr_s2_list, tr2)
 
         p.stepSimulation()
         t += dt
@@ -191,14 +201,14 @@ ax4.grid()
 ax5 = fig1.add_subplot(325)
 ax5.set_xlabel('t')
 ax5.set_ylabel('u')
-
-
+ax5.plot(t1, upr_m1_list)
+ax5.plot(t1, upr_s1_list)
 ax5.grid()
 ax6 = fig1.add_subplot(326)
 ax6.set_xlabel('t')
 ax6.set_ylabel('u')
-
-
+ax6.plot(t1, upr_m2_list)
+ax6.plot(t1, upr_s2_list)
 ax6.grid()
 plt.suptitle('Желаемые значения {} для первого и {} для второго звена'.format(round(q_d1, 5), round(q_d2, 5)))
 plt.show()
