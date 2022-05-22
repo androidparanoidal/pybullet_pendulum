@@ -14,8 +14,8 @@ p.changeDynamics(boxId, 1, linearDamping=0, angularDamping=0)
 p.changeDynamics(boxId, 2, linearDamping=0, angularDamping=0)
 p.changeDynamics(boxId, 3, linearDamping=0, angularDamping=0)
 
-'''for _id in range(p.getNumJoints(boxId)):
-    print(f'{_id} {p.getJointInfo(boxId, _id)[1]}')'''
+for _id in range(p.getNumJoints(boxId)):
+    print(f'{_id} {p.getJointInfo(boxId, _id)[1]}')
 
 dt = 1 / 240
 h = dt
@@ -218,7 +218,18 @@ def pendulum_sim(the0, func):
     return pos_list
 sol_sim = pendulum_sim(the_0, model)
 
+ln1 = el_sol[:, 0]
+ln2 = el_sol[:, 1]
+ln3 = sol_sim[:, 0]
+ln4 = sol_sim[:, 1]
 
+def L2_norm(l1, l2):
+    distance = np.sqrt(abs((np.array(l1) - np.array(l2)) ** 2))
+    return distance
+
+print('Норма L2 для первого звена = ', np.mean(L2_norm(ln1, ln3)), '\n')
+# print(L2_norm(ln1, ln3))
+print('Норма L2 для второго звена = ', np.mean(L2_norm(ln2, ln4)), '\n')
 
 p.disconnect()
 t1 = np.linspace(0, 1920*1/240, 1920)
