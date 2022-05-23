@@ -24,19 +24,19 @@ M1, M2 = 2, 1.5
 g = 9.81
 pi = math.pi
 
-the_0 = [0.0, 0.0]
-q_0 = np.array([0.0, 0.0, 0, 0])
-q_d1 = pi/2
-q_d2 = pi/2
+the_0 = [pi/2, pi/2]
+q_0 = np.array([pi/2, pi/2, 0, 0])
+q_d1 = 0
+q_d2 = 0
 
-T = int(8 / dt)
+T = int(5 / dt)
 TM = [0] * T
 upr_m1_list = np.array([])
 upr_m2_list = np.array([])
 upr_s1_list = np.array([])
 upr_s2_list = np.array([])
 
-m = 1
+m = 30
 u_b = [[0 for col in range(m)] for row in range(2)]
 
 poles = np.array(([-2], [-1], [-3], [-4]))
@@ -232,48 +232,49 @@ print('Норма L2 для первого звена = ', np.mean(L2_norm(ln1, 
 print('Норма L2 для второго звена = ', np.mean(L2_norm(ln2, ln4)), '\n')
 
 p.disconnect()
-t1 = np.linspace(0, 1920*1/240, 1920)
-t2 = np.linspace(0, 8)
+t1 = np.linspace(0, 1200*1/240, 1200)
+t2 = np.linspace(0, 5)
 qd1 = np.full(50, q_d1)
 qd2 = np.full(50, q_d2)
 
 fig1 = plt.figure("Графики решений")
 ax1 = fig1.add_subplot(321)
-ax1.set_ylabel('q')
-ax1.plot(t2, qd1, color='k', linestyle=':')
-ax1.plot(t1, el_sol[:, 0], label='model')
-ax1.plot(t1, sol_sim[:, 0], label='sim')
+ax1.set_ylabel('θ')
+#ax1.plot(t2, qd1, color='k', linestyle=':')
+ax1.plot(t1, sol_sim[:, 0], label='simulator', color='c')
+ax1.plot(t1, el_sol[:, 0], label='model', color='k', linestyle=':')
 ax1.legend()
 ax1.grid()
 ax2 = fig1.add_subplot(322)
-ax2.set_ylabel('q')
-ax2.plot(t2, qd2, color='k', linestyle=':')
-ax2.plot(t1, el_sol[:, 1])
-ax2.plot(t1, sol_sim[:, 1])
+ax2.set_ylabel('θ')
+#ax2.plot(t2, qd2, color='k', linestyle=':')
+ax2.plot(t1, sol_sim[:, 1], color='c')
+ax2.plot(t1, el_sol[:, 1], color='k', linestyle=':')
 ax2.grid()
 ax1.title.set_text('1 звено:')
 ax2.title.set_text('2 звено:')
 ax3 = fig1.add_subplot(323)
-ax3.set_ylabel("q'")
-ax3.plot(t1, el_sol[:, 2])
-ax3.plot(t1, sol_sim[:, 2])
+ax3.set_ylabel("θ'")
+ax3.plot(t1, sol_sim[:, 2], color='c')
+ax3.plot(t1, el_sol[:, 2], color='k', linestyle=':')
 ax3.grid()
 ax4 = fig1.add_subplot(324)
-ax4.set_ylabel("q'")
-ax4.plot(t1, el_sol[:, 3])
-ax4.plot(t1, sol_sim[:, 3])
+ax4.set_ylabel("θ'")
+ax4.plot(t1, sol_sim[:, 3], color='c')
+ax4.plot(t1, el_sol[:, 3], color='k', linestyle=':')
 ax4.grid()
 ax5 = fig1.add_subplot(325)
 ax5.set_xlabel('t')
 ax5.set_ylabel('u')
-ax5.plot(t1, upr_m1_list)
-ax5.plot(t1, upr_s1_list)
+ax5.plot(t1, upr_s1_list, color='c')
+ax5.plot(t1, upr_m1_list, color='k', linestyle=':')
 ax5.grid()
 ax6 = fig1.add_subplot(326)
 ax6.set_xlabel('t')
 ax6.set_ylabel('u')
-ax6.plot(t1, upr_m2_list)
-ax6.plot(t1, upr_s2_list)
+ax6.plot(t1, upr_s2_list, color='c')
+ax6.plot(t1, upr_m2_list, color='k', linestyle=':')
+
 ax6.grid()
 plt.suptitle('Желаемые значения {} для первого и {} для второго звена'.format(round(q_d1, 5), round(q_d2, 5)))
 plt.show()
