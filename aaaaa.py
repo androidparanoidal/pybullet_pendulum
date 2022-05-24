@@ -21,8 +21,8 @@ M1, M2 = 2, 1.5
 g = 9.81
 pi = math.pi
 
-the_0 = [pi/2, pi/2]
-q_0 = np.array([pi/2, pi/2, 0, 0])
+the_0 = [pi / 2, pi / 2]
+q_0 = np.array([pi / 2, pi / 2, 0, 0])
 q_d1 = 0
 q_d2 = 0
 
@@ -47,12 +47,14 @@ K = (np.asarray(Km)).flatten()
 K1 = K[:4]
 K2 = K[4:]
 
+
 def Mass_Matrix(x):
     q1, q2, dq1, dq2 = x[0], x[1], x[2], x[3]
     mm1 = M1 * L1 ** 2 + M2 * (L1 ** 2 + 2 * L1 * L2 * math.cos(q2) + L2 ** 2)
     mm2 = M2 * (L1 * L2 * math.cos(q2) + L2 ** 2)
     M = np.array([[mm1, mm2], [mm2, M2 * L2 ** 2]])
     return M
+
 
 def Cor_Matrix(x):
     q1, q2, dq1, dq2 = x[0], x[1], x[2], x[3]
@@ -62,6 +64,7 @@ def Cor_Matrix(x):
     C = np.array(([cc1[0]], [cc2[0]]))
     return C
 
+
 def Cor_Matrixforsim(x):
     q1, q2, dq1, dq2 = x[0], x[1], x[2], x[3]
     cc1 = -M2 * L1 * L2 * math.sin(q2) * (2 * dq1 * dq2 + dq2 ** 2)
@@ -69,12 +72,14 @@ def Cor_Matrixforsim(x):
     C = np.array(([cc1], [cc2]))
     return C
 
+
 def Grav_Matrix(x):
     q1, q2, dq1, dq2 = x[0], x[1], x[2], x[3]
     gg1 = (M1 + M2) * L1 * g * math.cos(q1) + M2 * g * L2 * math.cos(q1 + q2)
     gg2 = M2 * g * L2 * math.cos(q1 + q2)
     G = np.array(([gg1], [gg2]))
     return G
+
 
 def model_simple(x):
     global upr_m1_list, upr_m2_list
@@ -86,8 +91,8 @@ def model_simple(x):
     M = Mass_Matrix(x)
     M_inv = np.linalg.inv(M)
 
-    k1c = K1[0] * (q1-q_d1) + K1[1] * (q2-q_d2) + K1[2] * dq1 + K1[3] * dq2
-    k2c = K2[0] * (q1-q_d1) + K2[1] * (q2-q_d2) + K2[2] * dq1 + K2[3] * dq2
+    k1c = K1[0] * (q1 - q_d1) + K1[1] * (q2 - q_d2) + K1[2] * dq1 + K1[3] * dq2
+    k2c = K2[0] * (q1 - q_d1) + K2[1] * (q2 - q_d2) + K2[2] * dq1 + K2[3] * dq2
     U = (-1) * np.array(([k1c[0]], [k2c[0]]))
     UPR = (M @ U) + C + G + w
     upr_m1_list = np.append(upr_m1_list, UPR[0])
@@ -114,6 +119,7 @@ def euler(t, func, q_start):
         pos_m = np.vstack((pos_m, pos))
     return pos_m
 
+
 el_sol = euler(TM, model_simple, q_0)
 em1 = upr_m1_list[-1]
 em2 = upr_m2_list[-1]
@@ -122,13 +128,16 @@ upr_m2_list = np.append(upr_m2_list, em2)
 
 joint_id = [1, 3]
 
+
 def pendulum_sim(the0):
     t = 0
-    p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetPositions=the0, controlMode=p.POSITION_CONTROL)
+    p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetPositions=the0,
+                                controlMode=p.POSITION_CONTROL)
     for _ in range(1000):
         p.stepSimulation()
 
-    p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.VELOCITY_CONTROL, forces=[0.0, 0.0])
+    p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0],
+                                controlMode=p.VELOCITY_CONTROL, forces=[0.0, 0.0])
     PLIST = []
     global upr_s1_list, upr_s2_list
 
@@ -148,11 +157,12 @@ def pendulum_sim(the0):
         k2d = K2[0] * (j_pos1 - q_d1) + K2[1] * (j_pos2 - q_d2) + K2[2] * j_vel1 + K2[3] * j_vel2
         U = (-1) * np.array(([k1d], [k2d]))
         trq = (M @ U) + C + G + w
-        
+
         tr1 = trq[0][0]
         tr2 = trq[1][0]
         torques = [tr1, tr2]
-        p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0], controlMode=p.TORQUE_CONTROL, forces=torques)
+        p.setJointMotorControlArray(bodyIndex=boxId, jointIndices=joint_id, targetVelocities=[0.0, 0.0],
+                                    controlMode=p.TORQUE_CONTROL, forces=torques)
         upr_s1_list = np.append(upr_s1_list, tr1)
         upr_s2_list = np.append(upr_s2_list, tr2)
 
@@ -162,12 +172,11 @@ def pendulum_sim(the0):
     pos_list = np.stack(PLIST, axis=0)
     return pos_list
 
+
 sol_sim = pendulum_sim(the_0)
 
-
-
 p.disconnect()
-t1 = np.linspace(0, 1200*1/240, 1200)
+t1 = np.linspace(0, 1200 * 1 / 240, 1200)
 t2 = np.linspace(0, 5)
 qd1 = np.full(50, q_d1)
 qd2 = np.full(50, q_d2)
@@ -175,40 +184,41 @@ qd2 = np.full(50, q_d2)
 fig1 = plt.figure("Графики решений")
 ax1 = fig1.add_subplot(321)
 ax1.set_ylabel('θ')
-#ax1.plot(t2, qd1, color='k', linestyle=':')
-ax1.plot(t1, sol_sim[:, 0], label='simulator', color='c')
-ax1.plot(t1, el_sol[:, 0], label='model', color='k', linestyle=':')
+ax1.plot(t2, qd1, color='k', linestyle=':', label='θ_d1')
+ax1.plot(t1, sol_sim[:, 0], label='simulator')
+ax1.plot(t1, el_sol[:, 0], label='model', color='k', linestyle=':', linewidth=2)
 ax1.legend()
 ax1.grid()
 ax2 = fig1.add_subplot(322)
 ax2.set_ylabel('θ')
-#ax2.plot(t2, qd2, color='k', linestyle=':')
-ax2.plot(t1, sol_sim[:, 1], color='c')
-ax2.plot(t1, el_sol[:, 1], color='k', linestyle=':')
+ax2.plot(t2, qd2, color='k', linestyle=':', label='θ_d2')
+ax2.plot(t1, sol_sim[:, 1], label='simulator')
+ax2.plot(t1, el_sol[:, 1], label='model', color='k', linestyle=':', linewidth=2)
+ax2.legend()
 ax2.grid()
 ax1.title.set_text('1 звено:')
 ax2.title.set_text('2 звено:')
 ax3 = fig1.add_subplot(323)
 ax3.set_ylabel("θ'")
-ax3.plot(t1, sol_sim[:, 2], color='c')
-ax3.plot(t1, el_sol[:, 2], color='k', linestyle=':')
+ax3.plot(t1, sol_sim[:, 2])
+ax3.plot(t1, el_sol[:, 2], color='k', linestyle=':', linewidth=2)
 ax3.grid()
 ax4 = fig1.add_subplot(324)
 ax4.set_ylabel("θ'")
-ax4.plot(t1, sol_sim[:, 3], color='c')
-ax4.plot(t1, el_sol[:, 3], color='k', linestyle=':')
+ax4.plot(t1, sol_sim[:, 3])
+ax4.plot(t1, el_sol[:, 3], color='k', linestyle=':', linewidth=2)
 ax4.grid()
 ax5 = fig1.add_subplot(325)
 ax5.set_xlabel('t')
 ax5.set_ylabel('u')
-ax5.plot(t1, upr_s1_list, color='c')
-ax5.plot(t1, upr_m1_list, color='k', linestyle=':')
+ax5.plot(t1, upr_s1_list)
+ax5.plot(t1, upr_m1_list, color='k', linestyle=':', linewidth=2)
 ax5.grid()
 ax6 = fig1.add_subplot(326)
 ax6.set_xlabel('t')
 ax6.set_ylabel('u')
-ax6.plot(t1, upr_s2_list, color='c')
-ax6.plot(t1, upr_m2_list, color='k', linestyle=':')
+ax6.plot(t1, upr_s2_list)
+ax6.plot(t1, upr_m2_list, color='k', linestyle=':', linewidth=2)
 ax6.grid()
 plt.suptitle('Желаемые значения {} для первого и {} для второго звена'.format(round(q_d1, 5), round(q_d2, 5)))
 plt.show()

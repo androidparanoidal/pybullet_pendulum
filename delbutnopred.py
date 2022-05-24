@@ -14,9 +14,6 @@ p.changeDynamics(boxId, 1, linearDamping=0, angularDamping=0)
 p.changeDynamics(boxId, 2, linearDamping=0, angularDamping=0)
 p.changeDynamics(boxId, 3, linearDamping=0, angularDamping=0)
 
-for _id in range(p.getNumJoints(boxId)):
-    print(f'{_id} {p.getJointInfo(boxId, _id)[1]}')
-
 dt = 1 / 240
 h = dt
 L1, L2 = 0.8, 0.7
@@ -24,10 +21,10 @@ M1, M2 = 2, 1.5
 g = 9.81
 pi = math.pi
 
-the_0 = [0, 0]
-q_0 = np.array([0.0, 0.0, 0, 0])
-q_d1 = pi/2
-q_d2 = pi/2
+the_0 = [pi/2, pi/2]
+q_0 = np.array([pi/2, pi/2, 0, 0])
+q_d1 = 0
+q_d2 = 0
 
 T = int(5 / dt)
 TM = [0] * T
@@ -52,7 +49,7 @@ K2 = K[4:]
 
 
 def model(x, TAU):
-    x = np.array(([x[0]], [x[1]], [x[2]], [x[3]]))
+    x = np.array(([x[0]-q_d1], [x[1]-q_d2], [x[2]], [x[3]]))
     q1 = x[0]
     q2 = x[1]
     dq1 = x[2]
@@ -85,29 +82,8 @@ def model(x, TAU):
     return dx[0]
 
 
-def euler_step(x0, b1, b2, func):
-    p1 = x0[0]
-    p2 = x0[1]
-    v1 = x0[2]
-    v2 = x0[3]
-    pos = [p1, p2, v1, v2]
-    buf = [b1, b2]
-    df = func(pos, buf)
-    pos[2] = pos[2] + h * df[2]
-    pos[0] = pos[0] + h * pos[2]
-    pos[3] = pos[3] + h * df[3]
-    pos[1] = pos[1] + h * pos[3]
-    pos_m = [pos[0], pos[1], pos[2], pos[3]]
-    return pos_m
 
-def prediction(x, buffer, func):
-    buf = buffer
-    for i in range(m-1):
-        x = euler_step(x, buf[0][i], buf[1][i], func)
-    return x
-
-
-def euler_pred(t, func, q_start):
+def euler(t, func, q_start):
     N = np.size(t) - 1
     pos = q_start
     pos_m = np.array(pos)
@@ -127,11 +103,11 @@ def euler_pred(t, func, q_start):
         pos[1] = pos[1] + h * pos[3]
         pos_m = np.vstack((pos_m, pos))
         pos_mm = pos_m[-1]
-        c = prediction(pos_mm, u_b, func)
-        q1 = c[0]
-        q2 = c[1]
-        dq1 = c[2]
-        dq2 = c[3]
+        ##
+        q1 = pos_mm[0]
+        q2 = pos_mm[1]
+        dq1 = pos_mm[2]
+        dq2 = pos_mm[3]
         w = np.array(([dq1], [dq2]))
 
         mm1 = (M1 * L1 ** 2 + M2 * (L1 ** 2 + 2 * L1 * L2 * np.cos(q2) + L2 ** 2)).tolist()
@@ -146,15 +122,15 @@ def euler_pred(t, func, q_start):
         gg2 = (M2 * g * L2 * np.cos(q1 + q2)).tolist()
         G = np.array(([gg1], [gg2]))
 
-        k1c = K1[0] * (c[0] - q_d1) + K1[1] * (c[1] - q_d2) + K1[2] * c[2] + K1[3] * c[3]
-        k2c = K2[0] * (c[0] - q_d1) + K2[1] * (c[1] - q_d2) + K2[2] * c[2] + K2[3] * c[3]
+        k1c = K1[0] * (q1 - q_d1) + K1[1] * (q2 - q_d2) + K1[2] * dq1 + K1[3] * dq2
+        k2c = K2[0] * (q1 - q_d1) + K2[1] * (q2 - q_d2) + K2[2] * dq1 + K2[3] * dq2
         U = (-1) * np.array(([k1c], [k2c]))
         u_prev = (M @ U) + C + G + w
         u_b[0].append(u_prev[0][0])
         u_b[1].append(u_prev[1][0])
     return pos_m
 
-el_sol = euler_pred(TM, model, q_0)
+el_sol = euler(TM, model, q_0)
 em1 = upr_m1_list[-1]
 em2 = upr_m2_list[-1]
 upr_m1_list = np.append(upr_m1_list, em1)
@@ -182,8 +158,8 @@ def pendulum_sim(the0, func):
         vec = [j_pos1, j_pos2, j_vel1, j_vel2]
         PLIST.append(vec)
 
-        d = prediction(vec, tau_b, func)
-        q1, q2, dq1, dq2 = d[0], d[1], d[2], d[3]
+        ##
+        q1, q2, dq1, dq2 = vec[0], vec[1], vec[2], vec[3]
 
         w = np.array(([dq1], [dq2]))
         tr1 = tau_b[0][0]
@@ -217,6 +193,7 @@ def pendulum_sim(the0, func):
     pos_list = np.stack(PLIST, axis=0)
     return pos_list
 sol_sim = pendulum_sim(the_0, model)
+
 
 
 p.disconnect()
