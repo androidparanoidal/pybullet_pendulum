@@ -43,6 +43,7 @@ A = np.array(([0, 0, 1, 0],
               [0, 0, 0, 0],
               [0, 0, 0, 0]))
 Km = control.matlab.place(A, B, poles)
+print(Km)
 K = (np.asarray(Km)).flatten()
 K1 = K[:4]
 K2 = K[4:]
@@ -174,6 +175,22 @@ def pendulum_sim(the0):
 
 
 sol_sim = pendulum_sim(the_0)
+
+
+ln1 = el_sol[:, 0]
+ln2 = el_sol[:, 1]
+ln3 = sol_sim[:, 0]
+ln4 = sol_sim[:, 1]
+
+def L2_norm(n1, n2):
+    distance = np.sqrt(abs((np.array(n1) - np.array(n2)) ** 2))
+    return distance
+
+print('\nМодули разности между м эйлера и симуляторным решением: ', L2_norm(ln1, ln3),
+      '\nНорма L2 = ', np.mean(L2_norm(ln1, ln3)), '\n')
+
+print('\nМодули разности между м эйлера и симуляторным решением2: ', L2_norm(ln2, ln4),
+      '\nНорма L2 = ', np.mean(L2_norm(ln2, ln4)), '\n')
 
 p.disconnect()
 t1 = np.linspace(0, 1200 * 1 / 240, 1200)
